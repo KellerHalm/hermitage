@@ -1,0 +1,84 @@
+﻿import prisma from '../config/prisma.js';
+import { generateSlug } from '../utils/slugify.js';
+import AppError from '../utils/AppError.js';
+
+export const createCategory = async (data) => {
+  const slug = generateSlug(data.name);
+  const existing = await prisma.category.findUnique({ where: { slug } });
+
+  if (existing) {
+    throw new AppError('Category already exists', 400);
+  }
+
+  return prisma.category.create({
+    data: {
+      name: data.name,
+      slug,
+      image: data.image || null,
+      parentId: data.parentId || null,
+    },
+  });
+};
+
+export const getAllCategories = async () => {
+  return prisma.category.findMany({
+    where: {
+      parentId: null,
+    },
+    include: {
+      subcategories: {
+        include: {
+          subcategories: true,
+        },
+      },
+    },
+    orderBy: { name: 'asc' },
+  });
+};
+
+export const getCategoryById = async (id) => {
+  const category = await prisma.category.findUnique({
+    where: { id },
+    include: {
+      subcategories: true,
+      parent: true,
+    },
+  });
+  if (!category) throw new AppError('Category not found', 404);
+  return category;
+};
+
+export const getCategoryBySlug = async (slug) => {
+  const category = await prisma.category.findUnique({
+    where: { slug },
+    include: {
+      subcategories: true,
+      parent: true,
+    },
+  });
+  if (!category) throw new AppError('Category not found', 404);
+  return category;
+};
+
+export const updateCategory = async (id, data) => {
+  const updateData = {};
+
+  if (data.name !== undefined) {
+    updateData.name = data.name;
+    updateData.slug = generateSlug(data.name);
+  }
+  if (data.image !== undefined) updateData.image = data.image || null;
+  if (data.parentId !== undefined) updateData.parentId = data.parentId || null;
+
+  return prisma.category.update({
+    where: { id },
+    data: updateData,
+  });
+};
+
+export const deleteCategory = async (id) => {
+  return prisma.category.delete({
+    where: { id },
+  });
+};
+
