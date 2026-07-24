@@ -25,7 +25,13 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: config.clientUrl,
+    origin: (origin, callback) => {
+      if (!origin || config.clientOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );
@@ -59,6 +65,10 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/compare', compareRoutes);
 app.use('/api/seo', seoRoutes);
 app.use('/api/users', userRoutes);
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
