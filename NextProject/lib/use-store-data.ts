@@ -1,23 +1,17 @@
 ﻿'use client';
 
 import { useEffect, useState } from 'react';
-import { SITE, COUNTRY_IMAGES, DEFAULT_COUNTRY_IMAGE } from './site';
+import { SITE } from './site';
 import { buildAssetUrl } from './api';
 import { Store } from './store';
 
-const buildCountries = (brands: any[], products: any[]) => {
-  const names = new Set<string>();
-  brands.forEach((brand) => {
-    if (brand.country) names.add(brand.country);
-  });
-  products.forEach((product) => {
-    if (product.country) names.add(product.country);
-  });
+const DEFAULT_COUNTRY_IMAGE = '/uploads/images/product-fallback.svg';
 
-  return [...names].map((name) => ({
-    id: name.toLowerCase().replace(/\s+/g, '-'),
-    name,
-    image: buildAssetUrl(COUNTRY_IMAGES[name] || DEFAULT_COUNTRY_IMAGE),
+const buildCountries = (dbCountries: any[]) => {
+  return dbCountries.map((c) => ({
+    id: c.id || c.slug,
+    name: c.name,
+    image: c.image ? buildAssetUrl(c.image) : buildAssetUrl(DEFAULT_COUNTRY_IMAGE),
   }));
 };
 
@@ -38,12 +32,13 @@ export function useStoreData() {
       const products = Store.getProducts();
       const categories = Store.getCategories();
       const brands = Store.getBrands();
+      const countries = Store.getCountries();
       setData({
         ...SITE,
         products,
         categories,
         brands,
-        countries: buildCountries(brands, products),
+        countries: buildCountries(countries),
       });
       setLoaded(true);
     };

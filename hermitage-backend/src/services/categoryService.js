@@ -2,7 +2,7 @@
 import { generateSlug } from '../utils/slugify.js';
 import AppError from '../utils/AppError.js';
 
-export const createCategory = async (data) => {
+export const createCategory = async (data, file) => {
   const slug = generateSlug(data.name);
   const existing = await prisma.category.findUnique({ where: { slug } });
 
@@ -10,11 +10,13 @@ export const createCategory = async (data) => {
     throw new AppError('Category already exists', 400);
   }
 
+  const imageUrl = file ? `/uploads/categories/${file.filename}` : data.image || null;
+
   return prisma.category.create({
     data: {
       name: data.name,
       slug,
-      image: data.image || null,
+      image: imageUrl,
       parentId: data.parentId || null,
     },
   });
@@ -60,14 +62,18 @@ export const getCategoryBySlug = async (slug) => {
   return category;
 };
 
-export const updateCategory = async (id, data) => {
+export const updateCategory = async (id, data, file) => {
   const updateData = {};
 
   if (data.name !== undefined) {
     updateData.name = data.name;
     updateData.slug = generateSlug(data.name);
   }
-  if (data.image !== undefined) updateData.image = data.image || null;
+  if (file) {
+    updateData.image = `/uploads/categories/${file.filename}`;
+  } else if (data.image !== undefined) {
+    updateData.image = data.image || null;
+  }
   if (data.parentId !== undefined) updateData.parentId = data.parentId || null;
 
   return prisma.category.update({

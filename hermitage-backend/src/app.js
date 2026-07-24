@@ -17,11 +17,14 @@ import searchRoutes from './routes/searchRoutes.js';
 import seoRoutes from './routes/seoRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import compareRoutes from './routes/compareRoutes.js';
+import countryRoutes from './routes/countryRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 
 const app = express();
 
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+}));
 
 app.use(
   cors({
@@ -63,6 +66,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/search', searchRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/compare', compareRoutes);
+app.use('/api/countries', countryRoutes);
 app.use('/api/seo', seoRoutes);
 app.use('/api/users', userRoutes);
 

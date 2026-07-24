@@ -13,6 +13,7 @@ export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
+  const [countries, setCountries] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
@@ -46,6 +47,7 @@ export default function ProductsPage() {
     setProducts(Store.getProducts());
     setCategories(Store.getCategories());
     setBrands(Store.getBrands());
+    setCountries(Store.getCountries());
     setLoading(false);
   };
 
@@ -230,7 +232,7 @@ export default function ProductsPage() {
             <div className="admin-field"><label>Старая цена (если скидка)</label><input type="number" value={formData.oldPrice} onChange={(e) => setFormData({ ...formData, oldPrice: e.target.value })} placeholder="Оставьте пустым, если нет скидки" /></div>
             <div className="admin-field"><label>Категория</label><select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}><option value="">Выберите категорию</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></div>
             <div className="admin-field"><label>Бренд</label><select value={formData.brandId} onChange={(e) => handleBrandChange(e.target.value)}><option value="">Выберите бренд</option>{brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select></div>
-            <div className="admin-field"><label>Страна</label><input type="text" value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })} /></div>
+            <div className="admin-field"><label>Страна</label><select value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })}><option value="">Выберите страну</option>{countries.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}</select></div>
             <div className="admin-field"><label>Артикул</label><input type="text" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} /></div>
             <div className="admin-field"><label>Размеры</label><input type="text" value={formData.sizes} onChange={(e) => setFormData({ ...formData, sizes: e.target.value })} /></div>
             <div className="admin-field"><label>Материал</label><input type="text" value={formData.material} onChange={(e) => setFormData({ ...formData, material: e.target.value })} /></div>

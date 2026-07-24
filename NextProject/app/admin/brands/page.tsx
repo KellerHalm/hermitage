@@ -5,6 +5,7 @@ import { Store } from '@/lib/store';
 
 export default function BrandsPage() {
   const [brands, setBrands] = useState<any[]>([]);
+  const [countries, setCountries] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingBrand, setEditingBrand] = useState<any | null>(null);
@@ -15,6 +16,7 @@ export default function BrandsPage() {
     setLoading(true);
     await Store.syncPublicData();
     setBrands(Store.getBrands());
+    setCountries(Store.getCountries());
     setLoading(false);
   };
 
@@ -92,7 +94,10 @@ export default function BrandsPage() {
             </div>
             <div style={{ marginBottom: '24px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#333' }}>Страна</label>
-              <input type="text" value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }} />
+              <select value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }}>
+                <option value="">Выберите страну</option>
+                {countries.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}
+              </select>
             </div>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button onClick={() => void handleSave()} style={{ flex: 1, padding: '12px', background: '#b89968', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}>Сохранить</button>

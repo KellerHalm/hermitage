@@ -104,7 +104,7 @@ export default function Home() {
         <div className="container">
           <Link href="/catalog?sale=1" className="promo-banner">
             <div className="promo-banner__bg">
-              <img src="/images/placeholder.svg" alt="Спальня" />
+              <img src={buildAssetUrl('/uploads/images/hero.jpg')} alt="Спальня" />
             </div>
             <div className="promo-banner__overlay"></div>
             <div>
@@ -130,7 +130,7 @@ export default function Home() {
       <section className="section" id="about">
         <div className="container about-block">
           <div className="about-block__image">
-            <img src="/images/placeholder.svg" alt="Салон HERMITAGE DECOR" />
+            <img src={buildAssetUrl('/uploads/images/hero.jpg')} alt="Салон HERMITAGE DECOR" />
           </div>
           <div className="about-block__text">
             <p className="section__subtitle">О нас</p>

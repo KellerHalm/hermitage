@@ -7,6 +7,7 @@ const GUEST_KEY = 'hd_guest_id';
 const PRODUCTS_KEY = 'hd_products';
 const CATEGORIES_KEY = 'categories';
 const BRANDS_KEY = 'brands';
+const COUNTRIES_KEY = 'countries';
 const FAVORITES_KEY = 'hd_favorites';
 const CART_KEY = 'hd_cart';
 const COMPARE_KEY = 'hd_compare';
@@ -147,6 +148,13 @@ const normalizeBrand = (brand: any) => ({
   slug: brand?.slug || '',
 });
 
+const normalizeCountry = (country: any) => ({
+  id: String(country?.id || ''),
+  name: country?.name || '',
+  slug: country?.slug || '',
+  image: country?.image || '',
+});
+
 const normalizeOrder = (order: any): Order => ({
   id: String(order?.id || ''),
   date: order?.createdAt || order?.date || new Date().toISOString(),
@@ -277,10 +285,11 @@ const buildProductFormData = (product: Record<string, any>) => {
 };
 
 const syncPublicData = async () => {
-  const [productsResponse, categoriesResponse, brandsResponse] = await Promise.all([
+  const [productsResponse, categoriesResponse, brandsResponse, countriesResponse] = await Promise.all([
     api.listProducts({ limit: 200 }),
     api.listCategories(),
     api.listBrands(),
+    api.listCountries(),
   ]);
 
   const products = Array.isArray(productsResponse?.data?.products)
@@ -292,14 +301,18 @@ const syncPublicData = async () => {
   const brands = Array.isArray(brandsResponse?.data?.brands)
     ? brandsResponse.data.brands.map(normalizeBrand)
     : [];
+  const countries = Array.isArray(countriesResponse?.data?.countries)
+    ? countriesResponse.data.countries.map(normalizeCountry)
+    : [];
 
   setMirrorValue(PRODUCTS_KEY, products);
   setMirrorValue('products', products);
   setMirrorValue(CATEGORIES_KEY, categories);
   setMirrorValue(BRANDS_KEY, brands);
+  setMirrorValue(COUNTRIES_KEY, countries);
   notify('products:update');
 
-  return { products, categories, brands };
+  return { products, categories, brands, countries };
 };
 
 const syncCart = async () => {
@@ -392,7 +405,7 @@ export const Store = {
     if (version !== APP_VERSION) {
       Object.keys(localStorage).forEach((key) => {
         if (key === GUEST_KEY) return;
-        if (key.startsWith('hd_') || key === 'products' || key === 'categories' || key === 'brands') {
+        if (key.startsWith('hd_') || key === 'products' || key === 'categories' || key === 'brands' || key === 'countries') {
           localStorage.removeItem(key);
         }
       });
@@ -453,6 +466,13 @@ export const Store = {
   },
   setBrands(brands: any[]) {
     setMirrorValue(BRANDS_KEY, brands);
+    notify();
+  },
+  getCountries() {
+    return Storage.get<any[]>(COUNTRIES_KEY, []);
+  },
+  setCountries(countries: any[]) {
+    setMirrorValue(COUNTRIES_KEY, countries);
     notify();
   },
   getOrders() {
@@ -721,14 +741,24 @@ export const Store = {
     Store.setAdminOrders(current);
     return updated;
   },
-  async createCategory(payload: { name: string; image?: string | null; parentId?: string | null }) {
+  async createCategory(payload: { name: string; image?: string | null; parentId?: string | null; file?: File | null }) {
     const token = requireToken();
-    await api.createCategory(token, payload);
+    const formData = new FormData();
+    formData.append('name', payload.name);
+    if (payload.parentId) formData.append('parentId', payload.parentId);
+    if (payload.file) formData.append('image', payload.file);
+    else if (payload.image) formData.append('image', payload.image);
+    await api.createCategory(token, formData);
     return syncPublicData();
   },
-  async updateCategory(id: string, payload: { name?: string; image?: string | null; parentId?: string | null }) {
+  async updateCategory(id: string, payload: { name?: string; image?: string | null; parentId?: string | null; file?: File | null }) {
     const token = requireToken();
-    await api.updateCategory(token, id, payload);
+    const formData = new FormData();
+    if (payload.name) formData.append('name', payload.name);
+    if (payload.parentId !== undefined) formData.append('parentId', payload.parentId || '');
+    if (payload.file) formData.append('image', payload.file);
+    else if (payload.image !== undefined) formData.append('image', payload.image || '');
+    await api.updateCategory(token, id, formData);
     return syncPublicData();
   },
   async deleteCategory(id: string) {
@@ -749,6 +779,29 @@ export const Store = {
   async deleteBrand(id: string) {
     const token = requireToken();
     await api.deleteBrand(token, id);
+    return syncPublicData();
+  },
+  async createCountry(payload: { name: string; image?: string | null; file?: File | null }) {
+    const token = requireToken();
+    const formData = new FormData();
+    formData.append('name', payload.name);
+    if (payload.file) formData.append('image', payload.file);
+    else if (payload.image) formData.append('image', payload.image);
+    await api.createCountry(token, formData);
+    return syncPublicData();
+  },
+  async updateCountry(id: string, payload: { name?: string; image?: string | null; file?: File | null }) {
+    const token = requireToken();
+    const formData = new FormData();
+    if (payload.name) formData.append('name', payload.name);
+    if (payload.file) formData.append('image', payload.file);
+    else if (payload.image !== undefined) formData.append('image', payload.image || '');
+    await api.updateCountry(token, id, formData);
+    return syncPublicData();
+  },
+  async deleteCountry(id: string) {
+    const token = requireToken();
+    await api.deleteCountry(token, id);
     return syncPublicData();
   },
   async loadUsers() {

@@ -18,7 +18,9 @@ export default function CategoriesPage() {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<any | null>(null);
-  const [formData, setFormData] = useState({ name: '', image: '', parentId: '' });
+  const [formData, setFormData] = useState({ name: '', parentId: '' });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadData = async () => {
@@ -70,11 +72,14 @@ export default function CategoriesPage() {
   const handleSave = async () => {
     if (!formData.name.trim()) return;
 
-    const payload: { name: string; image?: string | null; parentId?: string | null } = {
+    const payload: { name: string; image?: string | null; parentId?: string | null; file?: File | null } = {
       name: formData.name,
-      image: formData.image || null,
       parentId: formData.parentId || null,
     };
+
+    if (imageFile) {
+      payload.file = imageFile;
+    }
 
     if (editingCategory) {
       await Store.updateCategory(editingCategory.id, payload);
@@ -85,7 +90,9 @@ export default function CategoriesPage() {
     await loadData();
     setShowModal(false);
     setEditingCategory(null);
-    setFormData({ name: '', image: '', parentId: '' });
+    setFormData({ name: '', parentId: '' });
+    setImageFile(null);
+    setImagePreview(null);
   };
 
   const handleDelete = async (id: string) => {
@@ -102,7 +109,7 @@ export default function CategoriesPage() {
     <div>
       <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '16px' }}>
         <h1 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', margin: 0 }}>Категории</h1>
-        <button onClick={() => { setShowModal(true); setEditingCategory(null); setFormData({ name: '', image: '', parentId: '' }); }} style={{ padding: '12px 24px', background: '#b89968', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}>Добавить категорию</button>
+        <button onClick={() => { setShowModal(true); setEditingCategory(null); setFormData({ name: '', parentId: '' }); setImageFile(null); setImagePreview(null); }} style={{ padding: '12px 24px', background: '#b89968', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}>Добавить категорию</button>
       </div>
 
       <input type="text" placeholder="Поиск категорий..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '4px', marginBottom: '24px', fontSize: '14px', boxSizing: 'border-box' }} />
@@ -125,7 +132,7 @@ export default function CategoriesPage() {
                 </td>
                 <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>{productsCount[category.id] || 0}</td>
                 <td style={{ padding: '16px', textAlign: 'right' }}>
-                  <button onClick={() => { setEditingCategory(category); setFormData({ name: category.name, image: category.image || '', parentId: category.parentId || '' }); setShowModal(true); }} style={{ padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginRight: '8px' }}>Редактировать</button>
+                  <button onClick={() => { setEditingCategory(category); setFormData({ name: category.name, parentId: category.parentId || '' }); setImageFile(null); setImagePreview(category.image || null); setShowModal(true); }} style={{ padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginRight: '8px' }}>Редактировать</button>
                   <button onClick={() => void handleDelete(category.id)} style={{ padding: '6px 12px', background: '#ffebee', color: '#c62828', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Удалить</button>
                 </td>
               </tr>
@@ -144,7 +151,20 @@ export default function CategoriesPage() {
             </div>
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#333' }}>Изображение</label>
-              <input type="text" value={formData.image} onChange={(e) => setFormData({ ...formData, image: e.target.value })} placeholder="/images/p1.jpg или https://..." style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }} />
+              {(imagePreview || editingCategory?.image) && (
+                <div style={{ marginBottom: '8px' }}>
+                  <img src={imagePreview || editingCategory?.image} alt="" style={{ width: '100%', maxHeight: '160px', objectFit: 'cover', borderRadius: '4px' }} />
+                </div>
+              )}
+              <input type="file" accept="image/*" onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setImageFile(file);
+                if (file) {
+                  setImagePreview(URL.createObjectURL(file));
+                } else {
+                  setImagePreview(editingCategory?.image || null);
+                }
+              }} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }} />
             </div>
             <div style={{ marginBottom: '24px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#333' }}>Родительская категория</label>

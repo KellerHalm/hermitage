@@ -2,7 +2,7 @@
 
 export const createCategory = async (req, res, next) => {
   try {
-    const category = await categoryService.createCategory(req.body);
+    const category = await categoryService.createCategory(req.body, req.file);
     res.status(201).json({ status: 'success', data: { category } });
   } catch (error) {
     next(error);
@@ -38,7 +38,7 @@ export const getCategoryById = async (req, res, next) => {
 
 export const updateCategory = async (req, res, next) => {
   try {
-    const category = await categoryService.updateCategory(req.params.id, req.body);
+    const category = await categoryService.updateCategory(req.params.id, req.body, req.file);
     res.status(200).json({ status: 'success', data: { category } });
   } catch (error) {
     next(error);
