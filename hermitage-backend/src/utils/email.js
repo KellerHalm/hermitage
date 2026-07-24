@@ -1,6 +1,16 @@
 import nodemailer from 'nodemailer';
 import { config } from '../config/index.js';
 
+const escapeHtml = (str) => {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 const transporter = nodemailer.createTransport({
   host: config.emailHost,
   port: config.emailPort,
@@ -28,7 +38,7 @@ const STATUS_EMAILS = {
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
         <h2 style="color:#b89a6b;">Спасибо за вашу заявку!</h2>
-        <p>Ваша заявка <strong>#${order.id.slice(0, 8)}</strong> успешно создана и передана на обработку.</p>
+        <p>Ваша заявка <strong>#${escapeHtml(order.id.slice(0, 8))}</strong> успешно создана и передана на обработку.</p>
         <p>Наш менеджер свяжется с вами в ближайшее время для подтверждения деталей заказа и оформления оплаты.</p>
         <hr style="border:none;border-top:1px solid #e5e0d8;margin:24px 0;" />
         <h3 style="color:#333;">Детали заказа</h3>
@@ -36,8 +46,8 @@ const STATUS_EMAILS = {
           ${order.items.map((item) => `
             <tr>
               <td style="padding:8px 0;border-bottom:1px solid #eee;">
-                <strong>${item.product?.title || item.product?.name || 'Товар'}</strong><br/>
-                <span style="color:#666;font-size:13px;">Кол-во: ${item.quantity}</span>
+                <strong>${escapeHtml(item.product?.title || item.product?.name || 'Товар')}</strong><br/>
+                <span style="color:#666;font-size:13px;">Кол-во: ${escapeHtml(item.quantity)}</span>
               </td>
               <td style="padding:8px 0;border-bottom:1px solid #eee;text-align:right;font-weight:600;">
                 ${formatPrice(Number(item.price) * item.quantity)}
@@ -51,10 +61,10 @@ const STATUS_EMAILS = {
         <hr style="border:none;border-top:1px solid #e5e0d8;margin:24px 0;" />
         <p style="color:#666;font-size:13px;">
           ${order.deliveryType === 'delivery' ? 'Доставка' : 'Самовывоз'}
-          ${order.shippingAddress ? ` — ${order.shippingAddress}` : ''}
+          ${order.shippingAddress ? ` — ${escapeHtml(order.shippingAddress)}` : ''}
         </p>
         <p style="color:#666;font-size:13px;">
-          Телефон: ${order.customerPhone || 'не указан'}
+          Телефон: ${escapeHtml(order.customerPhone) || 'не указан'}
         </p>
         <hr style="border:none;border-top:1px solid #e5e0d8;margin:24px 0;" />
         <p style="color:#999;font-size:12px;text-align:center;">HERMITAGE DECOR — мебель и предметы интерьера премиального качества</p>
@@ -66,7 +76,7 @@ const STATUS_EMAILS = {
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
         <h2 style="color:#b89a6b;">Ваш заказ обрабатывается</h2>
-        <p>Заявка <strong>#${order.id.slice(0, 8)}</strong> принята в работу.</p>
+        <p>Заявка <strong>#${escapeHtml(order.id.slice(0, 8))}</strong> принята в работу.</p>
         <p>Наш менеджер уточнит детали доставки и свяжется с вами для завершения оформления.</p>
         <hr style="border:none;border-top:1px solid #e5e0d8;margin:24px 0;" />
         <p style="color:#999;font-size:12px;text-align:center;">HERMITAGE DECOR — мебель и предметы интерьера премиального качества</p>
@@ -78,7 +88,7 @@ const STATUS_EMAILS = {
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
         <h2 style="color:#b89a6b;">Ваш заказ в пути</h2>
-        <p>Заявка <strong>#${order.id.slice(0, 8)}</strong> отправлена и находится в пути.</p>
+        <p>Заявка <strong>#${escapeHtml(order.id.slice(0, 8))}</strong> отправлена и находится в пути.</p>
         <p>Ожидайте доставки в ближайшее время.</p>
         <hr style="border:none;border-top:1px solid #e5e0d8;margin:24px 0;" />
         <p style="color:#999;font-size:12px;text-align:center;">HERMITAGE DECOR — мебель и предметы интерьера премиального качества</p>
@@ -90,7 +100,7 @@ const STATUS_EMAILS = {
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
         <h2 style="color:#b89a6b;">Ваш заказ доставлен</h2>
-        <p>Заявка <strong>#${order.id.slice(0, 8)}</strong> успешно доставлена.</p>
+        <p>Заявка <strong>#${escapeHtml(order.id.slice(0, 8))}</strong> успешно доставлена.</p>
         <p>Спасибо за покупку! Будем рады видеть вас снова.</p>
         <hr style="border:none;border-top:1px solid #e5e0d8;margin:24px 0;" />
         <p style="color:#999;font-size:12px;text-align:center;">HERMITAGE DECOR — мебель и предметы интерьера премиального качества</p>
@@ -102,7 +112,7 @@ const STATUS_EMAILS = {
     html: `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
         <h2 style="color:#c62828;">Заказ отменён</h2>
-        <p>Заявка <strong>#${order.id.slice(0, 8)}</strong> была отменена.</p>
+        <p>Заявка <strong>#${escapeHtml(order.id.slice(0, 8))}</strong> была отменена.</p>
         <p>Если у вас есть вопросы, свяжитесь с нами.</p>
         <hr style="border:none;border-top:1px solid #e5e0d8;margin:24px 0;" />
         <p style="color:#999;font-size:12px;text-align:center;">HERMITAGE DECOR — мебель и предметы интерьера премиального качества</p>
@@ -150,7 +160,7 @@ export const sendWelcomeEmail = async ({ email, firstName }) => {
       subject: 'Добро пожаловать в HERMITAGE DECOR!',
       html: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
-          <h2 style="color:#b89a6b;">Добро пожаловать, ${firstName || 'клиент'}!</h2>
+          <h2 style="color:#b89a6b;">Добро пожаловать, ${escapeHtml(firstName) || 'клиент'}!</h2>
           <p>Спасибо за регистрацию в <strong>HERMITAGE DECOR</strong>.</p>
           <p>Теперь вы можете оформлять заказы, отслеживать их статус и сохранять избранные товары.</p>
           <p>Если у вас есть вопросы — свяжитесь с нами по телефону или электронной почте.</p>

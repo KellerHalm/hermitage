@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import xss from 'xss-clean';
+import sanitizeHtml from 'sanitize-html';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -67,7 +67,25 @@ app.use('/api/auth/register', authLimiter);
 
 app.use(express.json({ limit: '10kb' }));
 
-app.use(xss());
+const sanitize = (obj) => {
+  if (typeof obj === 'string') return sanitizeHtml(obj, { allowedTags: [], allowedAttributes: {} });
+  if (Array.isArray(obj)) return obj.map(sanitize);
+  if (obj && typeof obj === 'object') {
+    const clean = {};
+    for (const [key, value] of Object.entries(obj)) {
+      clean[key] = sanitize(value);
+    }
+    return clean;
+  }
+  return obj;
+};
+
+app.use((req, res, next) => {
+  if (req.body) req.body = sanitize(req.body);
+  if (req.query) req.query = sanitize(req.query);
+  if (req.params) req.params = sanitize(req.params);
+  next();
+});
 
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 

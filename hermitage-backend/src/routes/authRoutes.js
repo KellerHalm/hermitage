@@ -1,13 +1,14 @@
 ﻿import express from 'express';
 import * as authController from '../controllers/authController.js';
 import { protect } from '../middlewares/authMiddleware.js';
+import { validate, schemas } from '../middlewares/validateMiddleware.js';
 
 const router = express.Router();
 
-router.post('/register', authController.register);
-router.post('/login', authController.login);
+router.post('/register', validate(schemas.register), authController.register);
+router.post('/login', validate(schemas.login), authController.login);
 router.get('/me', protect, authController.getMe);
-router.patch('/me', protect, authController.updateMe);
+router.patch('/me', protect, validate(schemas.updateProfile), authController.updateMe);
 
 export default router;
 

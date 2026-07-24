@@ -2,6 +2,7 @@
 import * as productController from '../controllers/productController.js';
 import { protect, restrictTo } from '../middlewares/authMiddleware.js';
 import { uploadProductFiles } from '../middlewares/uploadMiddleware.js';
+import { validate, schemas } from '../middlewares/validateMiddleware.js';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ router.get('/:slug', productController.getProductBySlug);
 router.use(protect);
 router.use(restrictTo('ADMIN', 'MANAGER'));
 
-router.post('/', uploadProductFiles.array('images', 10), productController.createProduct);
+router.post('/', uploadProductFiles.array('images', 10), validate(schemas.createProduct), productController.createProduct);
 router.patch('/:id', uploadProductFiles.array('images', 10), productController.updateProduct);
 router.delete('/:id', restrictTo('ADMIN'), productController.deleteProduct);
 
