@@ -12,7 +12,7 @@ export const addFavorite = async (req, res, next) => {
 export const removeFavorite = async (req, res, next) => {
   try {
     await favoriteService.removeFavorite(req.user.id, req.params.productId);
-    res.status(204).json({ status: 'success', data: null });
+    res.status(200).json({ status: 'success', data: null });
   } catch (error) {
     next(error);
   }

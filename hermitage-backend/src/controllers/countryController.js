@@ -39,7 +39,7 @@ export const updateCountry = async (req, res, next) => {
 export const deleteCountry = async (req, res, next) => {
   try {
     await countryService.deleteCountry(req.params.id);
-    res.status(204).json({ status: 'success', data: null });
+    res.status(200).json({ status: 'success', data: null });
   } catch (error) {
     next(error);
   }

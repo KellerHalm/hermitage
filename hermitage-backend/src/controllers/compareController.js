@@ -21,7 +21,7 @@ export const addCompare = async (req, res, next) => {
 export const removeCompare = async (req, res, next) => {
   try {
     await compareService.removeCompare(req.user.id, req.params.productId);
-    res.status(204).json({ status: 'success', data: null });
+    res.status(200).json({ status: 'success', data: null });
   } catch (error) {
     next(error);
   }

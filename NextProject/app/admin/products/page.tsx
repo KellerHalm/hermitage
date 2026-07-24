@@ -209,7 +209,7 @@ export default function ProductsPage() {
                   <td style={{ padding: '16px', fontSize: '14px', fontWeight: 500 }}>{product.name}</td>
                   <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>{categories.find((category) => String(category.id) === String(product.category))?.name || product.categoryName || '—'}</td>
                   <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>{product.factory || '—'}</td>
-                  <td style={{ padding: '16px', fontSize: '14px', fontWeight: 500 }}>{Number(product.price).toLocaleString('ru-RU')} ?</td>
+                   <td style={{ padding: '16px', fontSize: '14px', fontWeight: 500 }}>{Number(product.price).toLocaleString('ru-RU')} &#8381;</td>
                   <td style={{ padding: '16px', fontSize: '14px' }}>{product.inStock === 'preorder' ? 'Под заказ' : product.inStock === false ? 'Нет в наличии' : 'В наличии'}</td>
                   <td style={{ padding: '16px', textAlign: 'right' }}>
                     <button onClick={() => openEdit(product)} style={{ padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginRight: '8px' }}>Редактировать</button>

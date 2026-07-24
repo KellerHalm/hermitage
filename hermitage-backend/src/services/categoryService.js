@@ -67,7 +67,15 @@ export const updateCategory = async (id, data, file) => {
 
   if (data.name !== undefined) {
     updateData.name = data.name;
-    updateData.slug = generateSlug(data.name);
+    const newSlug = generateSlug(data.name);
+    const existing = await prisma.category.findUnique({ where: { id } });
+    if (existing && newSlug !== existing.slug) {
+      const slugExists = await prisma.category.findUnique({ where: { slug: newSlug } });
+      if (slugExists) {
+        throw new AppError('Category with this name already exists', 400);
+      }
+    }
+    updateData.slug = newSlug;
   }
   if (file) {
     updateData.image = `/uploads/categories/${file.filename}`;

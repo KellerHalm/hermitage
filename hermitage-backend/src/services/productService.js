@@ -248,7 +248,14 @@ export const updateProduct = async (id, data, files) => {
 
   if (data.title) {
     updateData.title = data.title;
-    updateData.slug = generateSlug(data.title);
+    const newSlug = generateSlug(data.title);
+    if (newSlug !== existing.slug) {
+      const slugExists = await prisma.product.findUnique({ where: { slug: newSlug } });
+      if (slugExists) {
+        throw new AppError('Product with this title already exists', 400);
+      }
+    }
+    updateData.slug = newSlug;
   }
   if (data.description !== undefined) updateData.description = data.description || '';
   if (data.price !== undefined) updateData.price = Number.parseFloat(data.price);

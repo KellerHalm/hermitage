@@ -1,5 +1,8 @@
 ﻿import prisma from '../config/prisma.js';
 import AppError from '../utils/AppError.js';
+import { sendOrderCreatedEmail, sendOrderStatusEmail } from '../utils/email.js';
+
+const VALID_ORDER_STATUSES = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
 export const createOrder = async (userId, data) => {
   const {
@@ -14,8 +17,14 @@ export const createOrder = async (userId, data) => {
     customerEmail,
   } = data;
 
-  if (!items || items.length === 0) {
+  if (!items || !Array.isArray(items) || items.length === 0) {
     throw new AppError('No order items provided', 400);
+  }
+
+  for (const item of items) {
+    if (!item.productId || !item.quantity || item.quantity < 1) {
+      throw new AppError('Each item must have a valid productId and quantity >= 1', 400);
+    }
   }
 
   const productIds = items.map((item) => item.productId);
@@ -29,6 +38,14 @@ export const createOrder = async (userId, data) => {
 
     if (!product) {
       throw new AppError(`Product with ID ${item.productId} not found`, 404);
+    }
+
+    if (product.stockStatus === 'OUT_OF_STOCK') {
+      throw new AppError(`Product "${product.title}" is out of stock`, 400);
+    }
+
+    if (product.stockQuantity !== null && product.stockQuantity < item.quantity) {
+      throw new AppError(`Not enough stock for "${product.title}" (available: ${product.stockQuantity})`, 400);
     }
 
     const price = Number(product.price);
@@ -67,7 +84,13 @@ export const createOrder = async (userId, data) => {
           },
         },
       },
+      user: {
+        select: { email: true },
+      },
     },
+  }).then(async (order) => {
+    void sendOrderCreatedEmail(order).catch(() => {});
+    return order;
   });
 };
 
@@ -127,18 +150,28 @@ export const getAllOrders = async (query) => {
   };
 };
 
-export const updateOrderStatus = async (id, status) => prisma.order.update({
-  where: { id },
-  data: { status },
-  include: {
-    items: {
-      include: {
-        product: true,
+export const updateOrderStatus = async (id, status) => {
+  if (!VALID_ORDER_STATUSES.includes(status)) {
+    throw new AppError(`Invalid order status: ${status}. Valid statuses: ${VALID_ORDER_STATUSES.join(', ')}`, 400);
+  }
+
+  const order = await prisma.order.update({
+    where: { id },
+    data: { status },
+    include: {
+      items: {
+        include: {
+          product: true,
+        },
+      },
+      user: {
+        select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true },
       },
     },
-    user: {
-      select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true },
-    },
-  },
-});
+  });
+
+  void sendOrderStatusEmail(order, status).catch(() => {});
+
+  return order;
+};
 

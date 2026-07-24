@@ -101,8 +101,8 @@ export default function OrdersPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {order.items.map((item: any, index: number) => (
                   <div key={index} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', background: '#f9f9f9', borderRadius: '4px', fontSize: '14px' }}>
-                    <span>{item.name} {item.qty > 1 ? `(?${item.qty})` : ''}</span>
-                    {item.price ? <span style={{ fontWeight: 500 }}>{(item.price * item.qty).toLocaleString('ru-RU')} ?</span> : null}
+                    <span>{item.name} {item.qty > 1 ? `(x${item.qty})` : ''}</span>
+                    {item.price ? <span style={{ fontWeight: 500 }}>{(item.price * item.qty).toLocaleString('ru-RU')} &#8381;</span> : null}
                   </div>
                 ))}
               </div>

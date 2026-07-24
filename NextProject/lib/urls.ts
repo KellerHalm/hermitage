@@ -1,5 +1,5 @@
 export function getProductUrl(product: { id: string; slug?: string }) {
-  return product.slug ? `/product/${product.slug}` : `/product?id=${product.id}`;
+  return product.slug ? `/product/${product.slug}` : '/catalog';
 }
 
 export function getCategoryUrl(category: { id?: string; slug?: string }) {

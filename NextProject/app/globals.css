@@ -3266,3 +3266,12 @@ height: 110px;
 .admin-btn-cancel:hover {
   background: #eee !important;
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}

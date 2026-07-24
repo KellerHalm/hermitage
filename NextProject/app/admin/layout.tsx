@@ -53,7 +53,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           display: 'none',
         }}
       >
-        {sidebarOpen ? '?' : '?'}
+        {sidebarOpen ? '\u2715' : '\u2630'}
       </button>
 
       {sidebarOpen && (

@@ -255,7 +255,7 @@ export default function AccountPage() {
                         {order.items.map((item: any, index: number) => (
                           <li key={index}>
                             {item.name}
-                            {item.qty > 1 ? ` ?${item.qty}` : ''}
+                            {item.qty > 1 ? ` x${item.qty}` : ''}
                           </li>
                         ))}
                       </ul>

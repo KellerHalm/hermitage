@@ -186,6 +186,7 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
         firstName: orderForm.firstName || currentUser.firstName,
         lastName: orderForm.lastName || currentUser.lastName,
         phone: orderForm.phone || currentUser.phone,
+        email: currentUser.email,
         deliveryType: orderForm.deliveryType as 'pickup' | 'delivery',
         paymentMethod: orderForm.paymentMethod,
         address: orderForm.address,

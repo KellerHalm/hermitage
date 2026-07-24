@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import prisma from '../config/prisma.js';
 import { config } from '../config/index.js';
 import AppError from '../utils/AppError.js';
+import { sendWelcomeEmail } from '../utils/email.js';
 
 const signToken = (id) => jwt.sign({ id }, config.jwtSecret, {
   expiresIn: config.jwtExpiresIn,
@@ -35,6 +36,8 @@ export const registerUser = async (data) => {
   });
 
   const token = signToken(newUser.id);
+
+  void sendWelcomeEmail({ email, firstName }).catch(() => {});
 
   return { user: sanitizeUser(newUser), token };
 };

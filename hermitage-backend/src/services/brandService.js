@@ -36,7 +36,15 @@ export const updateBrand = async (id, data) => {
 
   if (data.name !== undefined) {
     updateData.name = data.name;
-    updateData.slug = generateSlug(data.name);
+    const newSlug = generateSlug(data.name);
+    const existing = await prisma.brand.findUnique({ where: { id } });
+    if (existing && newSlug !== existing.slug) {
+      const slugExists = await prisma.brand.findUnique({ where: { slug: newSlug } });
+      if (slugExists) {
+        throw new AppError('Brand with this name already exists', 400);
+      }
+    }
+    updateData.slug = newSlug;
   }
   if (data.country !== undefined) updateData.country = data.country || null;
 

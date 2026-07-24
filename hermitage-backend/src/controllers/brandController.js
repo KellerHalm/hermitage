@@ -39,7 +39,7 @@ export const updateBrand = async (req, res, next) => {
 export const deleteBrand = async (req, res, next) => {
   try {
     await brandService.deleteBrand(req.params.id);
-    res.status(204).json({ status: 'success', data: null });
+    res.status(200).json({ status: 'success', data: null });
   } catch (error) {
     next(error);
   }

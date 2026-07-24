@@ -4,6 +4,8 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import xss from 'xss-clean';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { config } from './config/index.js';
 import AppError from './utils/AppError.js';
 import { errorHandler } from './middlewares/errorHandler.js';
@@ -20,7 +22,12 @@ import compareRoutes from './routes/compareRoutes.js';
 import countryRoutes from './routes/countryRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 const app = express();
+
+app.set('trust proxy', 1);
 
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
@@ -50,12 +57,19 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
+const authLimiter = rateLimit({
+  max: 20,
+  windowMs: 15 * 60 * 1000,
+  message: 'Too many authentication attempts, please try again in 15 minutes!',
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
 app.use(express.json({ limit: '10kb' }));
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
 app.use(xss());
 
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 app.use('/api/auth', authRoutes);
 app.use('/api/brands', brandRoutes);

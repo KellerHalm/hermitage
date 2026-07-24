@@ -1,8 +1,13 @@
 import type { NextConfig } from "next";
 
-const apiHost = process.env.NEXT_PUBLIC_API_BASE_URL
-  ? new URL(process.env.NEXT_PUBLIC_API_BASE_URL).hostname
-  : 'localhost';
+let apiHost = 'localhost';
+try {
+  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
+    apiHost = new URL(process.env.NEXT_PUBLIC_API_BASE_URL).hostname;
+  }
+} catch {
+  // Fallback to localhost if URL is malformed
+}
 
 const nextConfig: NextConfig = {
   images: {
