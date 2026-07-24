@@ -71,6 +71,7 @@ model Product {
   slug            String                  @unique
   description     String
   price           Decimal                 @db.Decimal(10, 2)
+  oldPrice        Decimal?                @db.Decimal(10, 2)
   sku             String?
   sizes           String?
   stockStatus     StockStatus             @default(IN_STOCK)

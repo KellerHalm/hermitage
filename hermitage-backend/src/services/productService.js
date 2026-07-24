@@ -22,11 +22,45 @@ const buildImagesData = (files = []) => files.map((file, index) => ({
   isMain: index === 0,
 }));
 
+// Accepts a scalar or a comma-separated list ("red,blue") and returns a clean
+// array of non-empty trimmed values, or null if there is nothing to filter on.
+const splitList = (value) => {
+  if (value === undefined || value === null) return null;
+  if (Array.isArray(value)) {
+    const arr = value.map((v) => String(v).trim()).filter(Boolean);
+    return arr.length > 0 ? arr : null;
+  }
+  const str = String(value).trim();
+  if (!str) return null;
+  const arr = str.split(',').map((v) => v.trim()).filter(Boolean);
+  return arr.length > 0 ? arr : null;
+};
+
+// Collects a category id together with all of its descendant ids so that
+// filtering by a parent category also returns products from its subcategories.
+const collectCategoryIds = async (categoryId) => {
+  const ids = [categoryId];
+  let currentLevel = [categoryId];
+  // The category tree is at most a few levels deep; walk it breadth-first.
+  while (currentLevel.length > 0) {
+    // eslint-disable-next-line no-await-in-loop
+    const children = await prisma.category.findMany({
+      where: { parentId: { in: currentLevel } },
+      select: { id: true },
+    });
+    if (children.length === 0) break;
+    currentLevel = children.map((c) => c.id);
+    ids.push(...currentLevel);
+  }
+  return ids;
+};
+
 const buildProductPayload = (data) => ({
   title: data.title,
   slug: generateSlug(data.title),
   description: data.description || '',
   price: Number.parseFloat(data.price),
+  oldPrice: data.oldPrice ? Number.parseFloat(data.oldPrice) : null,
   sku: data.sku || null,
   sizes: data.sizes || null,
   stockStatus: data.stockStatus || 'IN_STOCK',
@@ -99,12 +133,41 @@ export const getAllProducts = async (query) => {
 
   const where = {};
 
-  if (categoryId) where.categoryId = categoryId;
-  if (brandId) where.brandId = brandId;
-  if (stockStatus) where.stockStatus = stockStatus;
-  if (color) where.color = color;
-  if (material) where.material = material;
-  if (country) where.country = country;
+  // Multi-value filters: accept a single value or a comma-separated list.
+  const colors = splitList(color);
+  const materials = splitList(material);
+  const countries = splitList(country);
+  const stockStatuses = splitList(stockStatus);
+
+  if (colors) where.color = { in: colors };
+  if (materials) where.material = { in: materials };
+  if (countries) where.country = { in: countries };
+  if (stockStatuses) where.stockStatus = { in: stockStatuses };
+
+  // brandId: support either a single id or a comma-separated list of ids.
+  const brandIds = splitList(brandId);
+  if (brandIds) where.brandId = { in: brandIds };
+
+  // Category: resolve into the full set of ids (parent + descendants) so that
+  // filtering by a parent category also matches products in its subcategories.
+  // categorySlug takes precedence over categoryId when both are present.
+  let targetCategoryIds = null;
+  if (query.categorySlug) {
+    const category = await prisma.category.findUnique({
+      where: { slug: query.categorySlug },
+      select: { id: true },
+    });
+    if (category) {
+      targetCategoryIds = await collectCategoryIds(category.id);
+    }
+  } else if (categoryId) {
+    const ids = splitList(categoryId);
+    if (ids) {
+      const resolved = await Promise.all(ids.map((cId) => collectCategoryIds(cId)));
+      targetCategoryIds = [...new Set(resolved.flat())];
+    }
+  }
+  if (targetCategoryIds) where.categoryId = { in: targetCategoryIds };
 
   if (minPrice || maxPrice) {
     where.price = {};
@@ -129,20 +192,11 @@ export const getAllProducts = async (query) => {
     where.isSale = true;
   }
 
-  if (query.categorySlug) {
-    const category = await prisma.category.findUnique({
-      where: { slug: query.categorySlug },
-      select: { id: true },
-    });
-    if (category) {
-      where.categoryId = category.id;
-    }
-  }
-
   let orderBy = { createdAt: 'desc' };
   if (sort === 'price_asc') orderBy = { price: 'asc' };
   if (sort === 'price_desc') orderBy = { price: 'desc' };
   if (sort === 'popular') orderBy = { popular: 'desc' };
+  if (sort === 'discount') orderBy = { oldPrice: 'desc' };
 
   const [products, total] = await Promise.all([
     prisma.product.findMany({
@@ -198,6 +252,7 @@ export const updateProduct = async (id, data, files) => {
   }
   if (data.description !== undefined) updateData.description = data.description || '';
   if (data.price !== undefined) updateData.price = Number.parseFloat(data.price);
+  if (data.oldPrice !== undefined) updateData.oldPrice = data.oldPrice ? Number.parseFloat(data.oldPrice) : null;
   if (data.sku !== undefined) updateData.sku = data.sku || null;
   if (data.sizes !== undefined) updateData.sizes = data.sizes || null;
   if (data.stockStatus !== undefined) updateData.stockStatus = data.stockStatus;

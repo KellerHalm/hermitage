@@ -11,6 +11,7 @@ export default function AdminDashboard() {
     categories: 0,
     brands: 0,
     orders: 0,
+    users: 0,
   });
 
   useEffect(() => {
@@ -25,11 +26,17 @@ export default function AdminDashboard() {
         Store.loadAdminOrders(),
       ]);
 
+      let users: any[] = [];
+      try {
+        users = await Store.loadUsers();
+      } catch {}
+
       setStats({
         products: Store.getProducts().length,
         categories: Store.getCategories().length,
         brands: Store.getBrands().length,
         orders: Store.getAdminOrders().length,
+        users: users.length,
       });
     };
 
@@ -69,6 +76,11 @@ export default function AdminDashboard() {
           <div style={{ fontSize: '14px', color: '#777' }}>Заказы</div>
           <div style={{ fontSize: '36px', fontWeight: 700, marginTop: '10px' }}>{stats.orders}</div>
         </div>
+
+        <div style={{ background: '#fff', padding: '24px', borderRadius: '10px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          <div style={{ fontSize: '14px', color: '#777' }}>Пользователи</div>
+          <div style={{ fontSize: '36px', fontWeight: 700, marginTop: '10px' }}>{stats.users}</div>
+        </div>
       </div>
 
       <div style={{ display: 'grid', gap: '20px', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))' }}>
@@ -85,6 +97,11 @@ export default function AdminDashboard() {
         <Link href="/admin/categories" style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', textDecoration: 'none', color: '#1a1a1a' }}>
           <h3 style={{ marginBottom: '8px' }}>Категории</h3>
           <p style={{ color: '#666', fontSize: '14px' }}>Управление категориями</p>
+        </Link>
+
+        <Link href="/admin/users" style={{ padding: '24px', background: '#fff', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', textDecoration: 'none', color: '#1a1a1a' }}>
+          <h3 style={{ marginBottom: '8px' }}>Пользователи</h3>
+          <p style={{ color: '#666', fontSize: '14px' }}>Управление пользователями</p>
         </Link>
       </div>
     </div>

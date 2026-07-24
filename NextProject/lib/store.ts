@@ -121,8 +121,9 @@ const normalizeProduct = (product: any) => {
     inStock: toStockValue(product?.stockStatus || 'IN_STOCK'),
     stockQuantity: product?.stockQuantity ?? null,
     isNew: Boolean(product?.isNew),
-    isSale: Boolean(product?.isSale),
+    isSale: Boolean(product?.isSale) || (product?.oldPrice ? toNumber(product?.oldPrice) > toNumber(product?.price) : false),
     popular: Boolean(product?.popular),
+    oldPrice: product?.oldPrice ? toNumber(product?.oldPrice) : null,
     image: images[0] || buildAssetUrl(product?.image),
     images: images.length > 0 ? images : [buildAssetUrl(product?.image)],
     description: product?.description || '',
@@ -251,6 +252,9 @@ const buildProductFormData = (product: Record<string, any>) => {
   formData.append('title', String(product.name || ''));
   formData.append('description', String(product.description || ''));
   formData.append('price', String(product.price || 0));
+  if (product.oldPrice !== undefined && product.oldPrice !== null && product.oldPrice !== '') {
+    formData.append('oldPrice', String(product.oldPrice));
+  }
   formData.append('categoryId', String(product.category || product.categoryId || ''));
   if (product.brandId) formData.append('brandId', String(product.brandId));
   if (product.country) formData.append('country', String(product.country));
@@ -338,12 +342,22 @@ const syncUserData = async () => {
     return null;
   }
 
-  const meResponse = await api.getMe(token);
-  const user = normalizeUser(meResponse?.data?.user);
-  setCurrentUser(user);
-  await Promise.all([syncFavorites(token), syncOrders(token), syncCompare(token)]);
-  notify();
-  return user;
+  try {
+    const meResponse = await api.getMe(token);
+    const user = normalizeUser(meResponse?.data?.user);
+    setCurrentUser(user);
+    await Promise.all([syncFavorites(token), syncOrders(token), syncCompare(token)]);
+    notify();
+    return user;
+  } catch (err: any) {
+    const message = err?.message || '';
+    if (message.includes('User no longer exists') || message.includes('Not authorized') || message.includes('Invalid or expired token')) {
+      setToken(null);
+      clearUserData();
+      notify();
+    }
+    return null;
+  }
 };
 
 const mergeAndSyncCart = async (token: string) => {
@@ -736,6 +750,25 @@ export const Store = {
     const token = requireToken();
     await api.deleteBrand(token, id);
     return syncPublicData();
+  },
+  async loadUsers() {
+    const token = requireToken();
+    const response = await api.getUsers(token);
+    return Array.isArray(response?.data?.users) ? response.data.users : [];
+  },
+  async createUser(payload: { email: string; password: string; firstName?: string; lastName?: string; phone?: string; role?: string }) {
+    const token = requireToken();
+    const response = await api.createUser(token, payload);
+    return response?.data?.user;
+  },
+  async updateUser(id: string, payload: Record<string, unknown>) {
+    const token = requireToken();
+    const response = await api.updateUser(token, id, payload);
+    return response?.data?.user;
+  },
+  async deleteUser(id: string) {
+    const token = requireToken();
+    await api.deleteUser(token, id);
   },
   async createProduct(product: Record<string, any>) {
     const token = requireToken();

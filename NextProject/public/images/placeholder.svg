@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <rect width="800" height="600" fill="#E8E4DF"/>
+  <rect x="320" y="200" width="160" height="120" rx="8" fill="#CCC5BC" stroke="#B0A99E" stroke-width="2"/>
+  <polygon points="350,300 400,240 450,300" fill="#CCC5BC" stroke="#B0A99E" stroke-width="2"/>
+  <circle cx="440" cy="245" r="15" fill="#CCC5BC" stroke="#B0A99E" stroke-width="2"/>
+  <text x="400" y="370" text-anchor="middle" font-family="Georgia, serif" font-size="20" fill="#8B8178">Нет изображения</text>
+  <text x="400" y="560" text-anchor="middle" font-family="Georgia, serif" font-size="14" fill="#B0A99E">HERMITAGE DECOR</text>
+</svg>

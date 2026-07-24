@@ -283,7 +283,15 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
           <h1>{product.name}</h1>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', marginBottom: '16px' }}>
-            <p className="product-info__price" style={{ margin: 0 }}>{formatPrice(product.price)}</p>
+            <p className="product-info__price" style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {product.oldPrice && product.oldPrice > product.price && (
+                <>
+                  <span className="price--old">{formatPrice(product.oldPrice)}</span>
+                  <span className="price--discount">-{Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)}%</span>
+                </>
+              )}
+              {formatPrice(product.price)}
+            </p>
             <span style={{ padding: '6px 14px', background: getAvailabilityColor() === '#2e7d32' ? '#e8f5e9' : getAvailabilityColor() === '#e65100' ? '#fff3e0' : '#ffebee', color: getAvailabilityColor(), borderRadius: '20px', fontSize: '13px', fontWeight: 500 }}>
               {getAvailabilityText()}
             </span>

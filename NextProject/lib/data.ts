@@ -8,6 +8,7 @@ export interface Product {
   slug?: string;
   name: string;
   price: number;
+  oldPrice?: number | null;
   country: string;
   factory: string;
   category: string;

@@ -17,6 +17,7 @@ import searchRoutes from './routes/searchRoutes.js';
 import seoRoutes from './routes/seoRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import compareRoutes from './routes/compareRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 
 const app = express();
 
@@ -57,6 +58,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/compare', compareRoutes);
 app.use('/api/seo', seoRoutes);
+app.use('/api/users', userRoutes);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));

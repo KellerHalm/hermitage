@@ -5,6 +5,7 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import ProductCard from "./components/ProductCard";
 import { useStoreData } from '@/lib/use-store-data';
+import { buildAssetUrl } from '@/lib/api';
 import { getCategoryUrl, getCountryCatalogUrl } from '@/lib/urls';
 
 export default function Home() {
@@ -23,7 +24,7 @@ export default function Home() {
 
       <section className="hero">
         <div className="hero__bg">
-          <img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=1920&q=80" alt="Премиальный интерьер" />
+          <img src={buildAssetUrl('/uploads/images/hero.jpg')} alt="Премиальный интерьер" />
         </div>
         <div className="hero__overlay"></div>
         <div className="hero__content">
@@ -103,7 +104,7 @@ export default function Home() {
         <div className="container">
           <Link href="/catalog?sale=1" className="promo-banner">
             <div className="promo-banner__bg">
-              <img src="https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=1200&q=80" alt="Спальня" />
+              <img src="/images/placeholder.svg" alt="Спальня" />
             </div>
             <div className="promo-banner__overlay"></div>
             <div>
@@ -129,7 +130,7 @@ export default function Home() {
       <section className="section" id="about">
         <div className="container about-block">
           <div className="about-block__image">
-            <img src="https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=800&q=80" alt="Салон HERMITAGE DECOR" />
+            <img src="/images/placeholder.svg" alt="Салон HERMITAGE DECOR" />
           </div>
           <div className="about-block__text">
             <p className="section__subtitle">О нас</p>

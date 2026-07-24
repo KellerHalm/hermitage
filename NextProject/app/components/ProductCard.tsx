@@ -87,6 +87,12 @@ export default function ProductCard({ product }: { product: Product }) {
         </p>
 
         <p className="product-card__price">
+          {product.oldPrice && product.oldPrice > product.price && (
+            <>
+              <span className="price--old">{formatPrice(product.oldPrice)}</span>
+              <span className="price--discount">-{Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)}%</span>
+            </>
+          )}
           {formatPrice(product.price)}
         </p>
 

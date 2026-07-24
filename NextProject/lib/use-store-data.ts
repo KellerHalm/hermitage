@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { SITE, COUNTRY_IMAGES, DEFAULT_COUNTRY_IMAGE } from './site';
+import { buildAssetUrl } from './api';
 import { Store } from './store';
 
 const buildCountries = (brands: any[], products: any[]) => {
@@ -16,7 +17,7 @@ const buildCountries = (brands: any[], products: any[]) => {
   return [...names].map((name) => ({
     id: name.toLowerCase().replace(/\s+/g, '-'),
     name,
-    image: COUNTRY_IMAGES[name] || DEFAULT_COUNTRY_IMAGE,
+    image: buildAssetUrl(COUNTRY_IMAGES[name] || DEFAULT_COUNTRY_IMAGE),
   }));
 };
 

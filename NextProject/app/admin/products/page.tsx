@@ -22,6 +22,7 @@ export default function ProductsPage() {
   const [formData, setFormData] = useState<any>({
     name: '',
     price: '',
+    oldPrice: '',
     category: '',
     brandId: '',
     country: '',
@@ -36,6 +37,7 @@ export default function ProductsPage() {
     material: '',
     color: '',
     files: [] as File[],
+    characteristics: [] as Array<{ name: string; value: string }>,
   });
 
   const loadData = async () => {
@@ -61,6 +63,7 @@ export default function ProductsPage() {
   const resetForm = () => setFormData({
     name: '',
     price: '',
+    oldPrice: '',
     category: '',
     brandId: '',
     country: '',
@@ -75,6 +78,7 @@ export default function ProductsPage() {
     material: '',
     color: '',
     files: [],
+    characteristics: [],
   });
 
   const openCreate = () => {
@@ -88,6 +92,7 @@ export default function ProductsPage() {
     setFormData({
       name: product.name,
       price: String(product.price),
+      oldPrice: product.oldPrice ? String(product.oldPrice) : '',
       category: product.category,
       brandId: product.brandId || '',
       country: product.country || '',
@@ -102,6 +107,7 @@ export default function ProductsPage() {
       material: product.material || '',
       color: product.color || '',
       files: [],
+      characteristics: Array.isArray(product.characteristics) ? product.characteristics.map((c: any) => ({ name: c.name || '', value: c.value || '' })) : [],
     });
     setShowModal(true);
   };
@@ -129,30 +135,11 @@ export default function ProductsPage() {
       return;
     }
 
-    const payload = new FormData();
-    payload.append('title', formData.name);
-    payload.append('price', String(formData.price));
-    payload.append('categoryId', formData.category);
-    payload.append('brandId', formData.brandId);
-    payload.append('country', formData.country);
-    payload.append('stockStatus', formData.stockStatus);
-    if (formData.stockQuantity) payload.append('stockQuantity', String(formData.stockQuantity));
-    payload.append('popular', String(formData.popular));
-    payload.append('isNew', String(formData.isNew));
-    payload.append('isSale', String(formData.isSale));
-    payload.append('description', formData.description);
-    payload.append('sku', formData.sku);
-    payload.append('sizes', formData.sizes);
-    payload.append('material', formData.material);
-    payload.append('color', formData.color);
-    
-    formData.files.forEach((file: File) => payload.append('images', file));
-
     try {
       if (editingProduct) {
-        await Store.updateProduct(String(editingProduct.id), payload as any);
+        await Store.updateProduct(String(editingProduct.id), formData);
       } else {
-        await Store.createProduct(payload as any);
+        await Store.createProduct(formData);
       }
       await loadData();
       setShowModal(false);
@@ -240,6 +227,7 @@ export default function ProductsPage() {
 
             <div className="admin-field"><label>Название</label><input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
             <div className="admin-field"><label>Цена</label><input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} /></div>
+            <div className="admin-field"><label>Старая цена (если скидка)</label><input type="number" value={formData.oldPrice} onChange={(e) => setFormData({ ...formData, oldPrice: e.target.value })} placeholder="Оставьте пустым, если нет скидки" /></div>
             <div className="admin-field"><label>Категория</label><select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}><option value="">Выберите категорию</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></div>
             <div className="admin-field"><label>Бренд</label><select value={formData.brandId} onChange={(e) => handleBrandChange(e.target.value)}><option value="">Выберите бренд</option>{brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select></div>
             <div className="admin-field"><label>Страна</label><input type="text" value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })} /></div>
@@ -251,6 +239,17 @@ export default function ProductsPage() {
             <div className="admin-field"><label>Количество</label><input type="number" value={formData.stockQuantity} onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })} /></div>
             <div className="admin-field"><label>Описание</label><textarea rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
             <div className="admin-field"><label>Изображения</label><input type="file" accept="image/*" multiple onChange={(e) => setFormData({ ...formData, files: Array.from(e.target.files || []) })} /></div>
+            <div className="admin-field">
+              <label>Характеристики</label>
+              {formData.characteristics.map((ch: any, idx: number) => (
+                <div key={idx} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  <input type="text" placeholder="Название" value={ch.name} onChange={(e) => { const next = [...formData.characteristics]; next[idx] = { ...next[idx], name: e.target.value }; setFormData({ ...formData, characteristics: next }); }} style={{ flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px' }} />
+                  <input type="text" placeholder="Значение" value={ch.value} onChange={(e) => { const next = [...formData.characteristics]; next[idx] = { ...next[idx], value: e.target.value }; setFormData({ ...formData, characteristics: next }); }} style={{ flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px' }} />
+                  <button type="button" onClick={() => { const next = formData.characteristics.filter((_: any, i: number) => i !== idx); setFormData({ ...formData, characteristics: next }); }} style={{ padding: '4px 10px', background: '#ffebee', color: '#c62828', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>&times;</button>
+                </div>
+              ))}
+              <button type="button" onClick={() => setFormData({ ...formData, characteristics: [...formData.characteristics, { name: '', value: '' }] })} style={{ padding: '6px 12px', background: '#f5f5f5', border: '1px dashed #ccc', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginTop: 4 }}>+ Добавить характеристику</button>
+            </div>
             <div className="admin-field admin-field-row"><label><input type="checkbox" checked={formData.popular} onChange={(e) => setFormData({ ...formData, popular: e.target.checked })} /> Популярный товар</label></div>
             <div className="admin-field admin-field-row"><label><input type="checkbox" checked={formData.isNew} onChange={(e) => setFormData({ ...formData, isNew: e.target.checked })} /> Новинка</label></div>
             <div className="admin-field admin-field-row"><label><input type="checkbox" checked={formData.isSale} onChange={(e) => setFormData({ ...formData, isSale: e.target.checked })} /> Акция</label></div>

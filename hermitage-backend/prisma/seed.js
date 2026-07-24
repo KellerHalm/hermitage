@@ -11,20 +11,41 @@ const prisma = new PrismaClient({ adapter });
 
 const generateSlug = (text) => slugify(text, { lower: true, strict: true, locale: 'ru' });
 
-const IMG = (seed, w = 800, h = 600) => `https://picsum.photos/seed/${seed}/${w}/${h}`;
+const IMG = (seed, w = 800, h = 600) => `/uploads/images/product-fallback.svg`;
 
 const categories = [
-  { name: 'Спальня', image: IMG(100, 800, 800) },
-  { name: 'Гостиная', image: IMG(101, 800, 800) },
-  { name: 'Столовая', image: IMG(102, 800, 800) },
-  { name: 'Кухня', image: IMG(104, 800, 800) },
-  { name: 'Прихожая', image: IMG(105, 800, 800) },
-  { name: 'Кабинет', image: IMG(103, 800, 800) },
-  { name: 'Детская', image: IMG(106, 800, 800) },
-  { name: 'Мягкая мебель', image: IMG(107, 800, 800) },
-  { name: 'Посуда', image: IMG(108, 800, 800) },
-  { name: 'Ароматы', image: IMG(109, 800, 800) },
-  { name: 'Текстиль', image: IMG(110, 800, 800) },
+  { name: 'Спальня', image: '/uploads/images/cat-spalnya.svg' },
+  { name: 'Гостиная', image: '/uploads/images/cat-gostinaya.svg' },
+  { name: 'Столовая', image: '/uploads/images/cat-stolovaya.svg' },
+  { name: 'Кухня', image: '/uploads/images/cat-kuhnya.svg' },
+  { name: 'Прихожая', image: '/uploads/images/cat-prihozhaya.svg' },
+  { name: 'Кабинет', image: '/uploads/images/cat-kabinet.svg' },
+  { name: 'Детская', image: '/uploads/images/cat-detskaya.svg' },
+  { name: 'Мягкая мебель', image: '/uploads/images/cat-myagkaya.svg' },
+  { name: 'Посуда', image: '/uploads/images/cat-posuda.svg' },
+  { name: 'Ароматы', image: '/uploads/images/cat-aromaty.svg' },
+  { name: 'Текстиль', image: '/uploads/images/cat-tekstil.svg' },
+];
+
+// Product-type subcategories grouped by room (per TZ 2.1B). These nest under
+// the room-level categories above so the catalog can filter "Спальня" and get
+// its "Кровати"/"Шкафы"/"Комоды" too.
+const subcategories = [
+  { name: 'Кровати', parentName: 'Спальня' },
+  { name: 'Шкафы', parentName: 'Спальня' },
+  { name: 'Комоды', parentName: 'Спальня' },
+  { name: 'Тумбы', parentName: 'Спальня' },
+  { name: 'Диваны', parentName: 'Гостиная' },
+  { name: 'Журнальные столы', parentName: 'Гостиная' },
+  { name: 'Обеденные столы', parentName: 'Столовая' },
+  { name: 'Стулья', parentName: 'Столовая' },
+  { name: 'Витрины', parentName: 'Гостиная' },
+  { name: 'Кресла', parentName: 'Кабинет' },
+  { name: 'Зеркала', parentName: 'Прихожая' },
+  { name: 'Постельное бельё', parentName: 'Текстиль' },
+  { name: 'Покрывала', parentName: 'Текстиль' },
+  { name: 'Вазы', parentName: 'Посуда' },
+  { name: 'Диффузоры', parentName: 'Ароматы' },
 ];
 
 const brands = [
@@ -58,6 +79,7 @@ const products = [
     isNew: true,
     isSale: false,
     categoryName: 'Спальня',
+    subCategoryName: 'Кровати',
     brandName: 'Poliform',
     images: [IMG(1, 1200, 800), IMG(10, 1200, 800), IMG(11, 1200, 800)],
     characteristics: [
@@ -69,6 +91,7 @@ const products = [
     title: 'Диван Milano Lounge',
     description: 'Элегантный модульный диван с глубокими сиденьями. Идеален для просторной гостиной в современном стиле.',
     price: 456000,
+    oldPrice: 540000,
     sku: 'HD-SOF-002',
     sizes: '280×95×72 см',
     stockStatus: 'IN_STOCK',
@@ -80,6 +103,7 @@ const products = [
     isNew: false,
     isSale: true,
     categoryName: 'Гостиная',
+    subCategoryName: 'Диваны',
     brandName: 'Minotti',
     images: [IMG(2, 1200, 800), IMG(12, 1200, 800)],
     characteristics: [
@@ -102,6 +126,7 @@ const products = [
     isNew: false,
     isSale: false,
     categoryName: 'Столовая',
+    subCategoryName: 'Обеденные столы',
     brandName: 'Natuzzi',
     images: [IMG(3, 1200, 800)],
     characteristics: [
@@ -124,6 +149,7 @@ const products = [
     isNew: true,
     isSale: false,
     categoryName: 'Спальня',
+    subCategoryName: 'Шкафы',
     brandName: 'Poliform',
     images: [IMG(4, 1200, 800)],
     characteristics: [
@@ -145,6 +171,7 @@ const products = [
     isNew: false,
     isSale: false,
     categoryName: 'Кабинет',
+    subCategoryName: 'Кресла',
     brandName: 'Flexform',
     images: [IMG(5, 1200, 800)],
     characteristics: [
@@ -155,6 +182,7 @@ const products = [
     title: 'Комод Riviera',
     description: 'Элегантный комод с мраморной столешницей и латунной фурнитурой.',
     price: 89000,
+    oldPrice: 110000,
     sku: 'HD-CMD-006',
     sizes: '140×45×85 см',
     stockStatus: 'IN_STOCK',
@@ -166,6 +194,7 @@ const products = [
     isNew: true,
     isSale: true,
     categoryName: 'Спальня',
+    subCategoryName: 'Комоды',
     brandName: 'Molteni&C',
     images: [IMG(6, 1200, 800)],
     characteristics: [
@@ -187,6 +216,7 @@ const products = [
     isNew: true,
     isSale: false,
     categoryName: 'Посуда',
+    subCategoryName: 'Вазы',
     brandName: 'Villeroy & Boch',
     images: [IMG(7, 1200, 800)],
     characteristics: [
@@ -208,6 +238,7 @@ const products = [
     isNew: false,
     isSale: false,
     categoryName: 'Ароматы',
+    subCategoryName: 'Диффузоры',
     brandName: 'Diptyque',
     images: [IMG(8, 1200, 800)],
     characteristics: [
@@ -229,6 +260,7 @@ const products = [
     isNew: true,
     isSale: false,
     categoryName: 'Текстиль',
+    subCategoryName: 'Покрывала',
     brandName: 'Roche Bobois',
     images: [IMG(9, 1200, 800)],
     characteristics: [
@@ -281,6 +313,20 @@ async function main() {
     categoryMap[cat.name] = created.id;
   }
 
+  // Create product-type subcategories nested under their room-level parent.
+  for (const sub of subcategories) {
+    const parentId = categoryMap[sub.parentName];
+    if (!parentId) continue;
+    const created = await prisma.category.create({
+      data: {
+        name: sub.name,
+        slug: generateSlug(sub.name),
+        parentId,
+      },
+    });
+    categoryMap[sub.name] = created.id;
+  }
+
   const brandMap = {};
   for (const brand of brands) {
     const created = await prisma.brand.create({
@@ -294,12 +340,17 @@ async function main() {
   }
 
   for (const product of products) {
+    // Prefer a product-type subcategory when available; fall back to the room.
+    const resolvedCategoryName = (product.subCategoryName && categoryMap[product.subCategoryName])
+      ? product.subCategoryName
+      : product.categoryName;
     await prisma.product.create({
       data: {
         title: product.title,
         slug: generateSlug(product.title),
         description: product.description,
         price: product.price,
+        oldPrice: product.oldPrice ?? null,
         sku: product.sku,
         sizes: product.sizes,
         stockStatus: product.stockStatus,
@@ -310,7 +361,7 @@ async function main() {
         popular: product.popular,
         isNew: product.isNew,
         isSale: product.isSale,
-        categoryId: categoryMap[product.categoryName],
+        categoryId: categoryMap[resolvedCategoryName],
         brandId: brandMap[product.brandName],
         images: {
           create: product.images.map((url, index) => ({

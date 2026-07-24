@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import Header from '../components/Header';
@@ -22,13 +22,17 @@ export default function CatalogClient({ initialCategorySlug }: CatalogClientProp
   const categoryParam = initialCategorySlug || searchParams.get('category') || '';
   const newOnly = searchParams.get('new') === '1';
   const saleOnly = searchParams.get('sale') === '1';
-  const country = searchParams.get('country') || '';
-  const search = searchParams.get('search') || '';
+  const searchQuery = searchParams.get('search') || '';
 
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [serverProducts, setServerProducts] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
 
   const [filters, setFilters] = useState({
     minPrice: searchParams.get('minPrice') || '',
@@ -46,15 +50,73 @@ export default function CatalogClient({ initialCategorySlug }: CatalogClientProp
 
   useEffect(() => {
     const loadData = () => {
-      setProducts(Store.getProducts());
       setCategories(Store.getCategories());
       setBrands(Store.getBrands());
       setLoaded(true);
     };
-
     loadData();
     return Store.subscribeToProducts(loadData);
   }, []);
+
+  const buildQueryParams = useCallback(() => {
+    const params: Record<string, unknown> = { page, limit: 24 };
+
+    if (categoryParam) params.categorySlug = categoryParam;
+    if (searchQuery) params.search = searchQuery;
+    if (filters.minPrice) params.minPrice = Number(filters.minPrice);
+    if (filters.maxPrice) params.maxPrice = Number(filters.maxPrice);
+    if (filters.country) params.country = filters.country;
+    if (filters.color) params.color = filters.color;
+    if (filters.material) params.material = filters.material;
+    if (filters.inStock) {
+      if (filters.inStock === 'yes') params.stockStatus = 'IN_STOCK';
+      else if (filters.inStock === 'no') params.stockStatus = 'OUT_OF_STOCK';
+      else if (filters.inStock === 'preorder') params.stockStatus = 'ON_ORDER';
+    }
+
+    const brandObj = brands.find((b: any) => b.name === filters.factory);
+    if (brandObj?.id) params.brandId = brandObj.id;
+
+    if (newOnly) params.isNew = 'true';
+    if (saleOnly) params.isSale = 'true';
+
+    if (sort === 'price-asc') params.sort = 'price_asc';
+    else if (sort === 'price-desc') params.sort = 'price_desc';
+    else if (sort === 'new') params.sort = 'popular';
+    else if (sort === 'discount') params.sort = 'discount';
+    else params.sort = 'popular';
+
+    return params;
+  }, [categoryParam, searchQuery, filters, brands, newOnly, saleOnly, sort, page]);
+
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await Store.fetchProducts(buildQueryParams());
+      setServerProducts(result);
+    } catch {
+      setServerProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [buildQueryParams]);
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!loaded) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      void fetchProducts();
+    }, 300);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [loaded, filters, sort, categoryParam, searchQuery, newOnly, saleOnly, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filters, sort, categoryParam, searchQuery, newOnly, saleOnly]);
 
   const updateFilters = (newFilters: typeof filters) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -112,51 +174,12 @@ export default function CatalogClient({ initialCategorySlug }: CatalogClientProp
 
   const allCategories = flattenCategories(categories);
   const activeCategory = allCategories.find((c: any) => c.id === categoryParam || c.slug === categoryParam);
-  
-  const categoryIds = new Set<string>();
-  if (activeCategory) {
-    categoryIds.add(String(activeCategory.id));
-    if (Array.isArray(activeCategory.subcategories)) {
-      activeCategory.subcategories.forEach((sub: any) => categoryIds.add(String(sub.id)));
-    }
-  }
 
-  const filteredProducts = products.filter((p: any) => {
-    if (categoryIds.size > 0) {
-      const productCategory = String(p.category || p.categoryId || '');
-      if (!categoryIds.has(productCategory)) return false;
-    }
-    if (newOnly && !p.isNew) return false;
-    if (saleOnly && !p.isSale) return false;
-    if (filters.country && p.country !== filters.country) return false;
-    if (filters.factory && p.factory !== filters.factory) return false;
-    if (filters.color && p.color !== filters.color) return false;
-    if (filters.material && p.material && !p.material.includes(filters.material)) return false;
-    if (filters.inStock === 'yes' && p.inStock !== true) return false;
-    if (filters.inStock === 'preorder' && p.inStock !== 'preorder') return false;
-    if (filters.inStock === 'no' && p.inStock !== false) return false;
-    if (filters.minPrice && p.price < Number(filters.minPrice)) return false;
-    if (filters.maxPrice && p.price > Number(filters.maxPrice)) return false;
-    if (search) {
-      const q = search.toLowerCase();
-      if (!p.name?.toLowerCase().includes(q) && !p.factory?.toLowerCase().includes(q) && !p.country?.toLowerCase().includes(q)) {
-        return false;
-      }
-    }
-    return true;
-  });
+  const allProducts = serverProducts.length > 0 ? serverProducts : [];
 
-  const sortedProducts = [...filteredProducts].sort((a: any, b: any) => {
-    if (sort === 'price-asc') return a.price - b.price;
-    if (sort === 'price-desc') return b.price - a.price;
-    if (sort === 'new') return (b.isNew ? 1 : 0) - (a.isNew ? 1 : 0);
-    return (b.popular ? 1 : 0) - (a.popular ? 1 : 0);
-  });
-
-  const countries = [...new Set(products.map((p: any) => p.country).filter(Boolean))];
-  const factories = brands.filter((b) => b.name && b.name.trim() !== '').map((b) => b.name);
-  const colors = [...new Set(products.map((p: any) => p.color).filter(Boolean))];
-  const materials = [...new Set(products.map((p: any) => p.material?.split(',')[0]?.trim()).filter(Boolean))];
+  const countries = [...new Set(allProducts.map((p: any) => p.country).filter(Boolean))];
+  const colors = [...new Set(allProducts.map((p: any) => p.color).filter(Boolean))];
+  const materials = [...new Set(allProducts.map((p: any) => p.material?.split(',')[0]?.trim()).filter(Boolean))];
 
   const pageTitle = activeCategory
     ? activeCategory.name
@@ -164,8 +187,8 @@ export default function CatalogClient({ initialCategorySlug }: CatalogClientProp
       ? 'Новинки'
       : saleOnly
         ? 'Акции'
-        : search
-          ? `Поиск: ${search}`
+        : searchQuery
+          ? `Поиск: ${searchQuery}`
           : 'Каталог';
 
   return (
@@ -204,7 +227,7 @@ export default function CatalogClient({ initialCategorySlug }: CatalogClientProp
               <label>Фабрика</label>
               <select value={filters.factory} onChange={(e) => setFilters({ ...filters, factory: e.target.value })}>
                 <option value="">Все</option>
-                {factories.map((f: any) => <option key={f} value={f}>{f}</option>)}
+                {brands.map((b: any) => <option key={b.id} value={b.name}>{b.name}</option>)}
               </select>
             </div>
             <div className="filter-group">
@@ -237,7 +260,7 @@ export default function CatalogClient({ initialCategorySlug }: CatalogClientProp
 
         <main className="catalog-main">
           <button type="button" className="categories-menu-toggle" onClick={() => setCategoriesPanelOpen(true)}>
-            Выбрать комнату <span style={{ fontSize: 12 }}>▼</span>
+            Выбрать комнату <span style={{ fontSize: 12 }}>&#9660;</span>
           </button>
 
           <div className="catalog-categories">
@@ -263,28 +286,55 @@ export default function CatalogClient({ initialCategorySlug }: CatalogClientProp
 
           <div className="catalog-toolbar">
             <button type="button" className="filters-toggle" onClick={() => setFiltersOpen(true)}>Фильтры</button>
-            <select id="sort-select" value={sort} onChange={(e) => { setSort(e.target.value); updateFilters({ ...filters, sort: e.target.value } as any); }} aria-label="Сортировка">
+            <select id="sort-select" value={sort} onChange={(e) => { setSort(e.target.value); }} aria-label="Сортировка">
               <option value="popular">По популярности</option>
               <option value="price-asc">По цене: сначала дешевле</option>
               <option value="price-desc">По цене: сначала дороже</option>
               <option value="new">По новизне</option>
+              <option value="discount">Сначала со скидкой</option>
             </select>
           </div>
 
           <div className="products-grid" style={{ marginTop: 24 }}>
-            {sortedProducts.length > 0 ? (
-              sortedProducts.map((p: any) => <ProductCard key={p.id} product={p} />)
+            {loading ? (
+              <div className="empty-state" style={{ gridColumn: '1/-1' }}>
+                <p>Загрузка товаров...</p>
+              </div>
+            ) : allProducts.length > 0 ? (
+              allProducts.map((p: any) => <ProductCard key={p.id} product={p} />)
             ) : (
               <div className="empty-state" style={{ gridColumn: '1/-1' }}>
                 <p>Товары не найдены</p>
               </div>
             )}
           </div>
+
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, marginTop: 32, paddingBottom: 32 }}>
+              <button
+                className="btn btn--outline btn--sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Назад
+              </button>
+              <span style={{ fontSize: 14, color: '#666' }}>
+                Страница {page} из {totalPages}
+              </span>
+              <button
+                className="btn btn--outline btn--sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Вперёд
+              </button>
+            </div>
+          )}
         </main>
       </div>
 
       <div className={`categories-panel ${categoriesPanelOpen ? 'open' : ''}`}>
-        <button type="button" onClick={() => setCategoriesPanelOpen(false)} aria-label="Закрыть" style={{ position: 'relative', top: '50px', right: '16px', width: '32px', height: '32px', background: '#fff', border: '1px solid #ddd', borderRadius: '50%', fontSize: '20px', lineHeight: '1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', padding: 0 }}>×</button>
+        <button type="button" onClick={() => setCategoriesPanelOpen(false)} aria-label="Закрыть" style={{ position: 'relative', top: '50px', right: '16px', width: '32px', height: '32px', background: '#fff', border: '1px solid #ddd', borderRadius: '50%', fontSize: '20px', lineHeight: '1', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', padding: 0 }}>&times;</button>
         <h2 className="categories-panel__title">Комнаты</h2>
         <div className="categories-panel__grid">
           <Link href="/catalog" className={`categories-panel__item ${!categoryParam ? 'active' : ''}`} onClick={() => setCategoriesPanelOpen(false)}>
