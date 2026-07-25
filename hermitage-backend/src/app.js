@@ -7,6 +7,7 @@ import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { config } from './config/index.js';
+import prisma from './config/prisma.js';
 import AppError from './utils/AppError.js';
 import { errorHandler } from './middlewares/errorHandler.js';
 import authRoutes from './routes/authRoutes.js';
@@ -111,7 +112,25 @@ app.use('/api/seo', seoRoutes);
 app.use('/api/users', userRoutes);
 
 app.get('/health', (req, res) => {
+  // Liveness-проверка: процесс жив. НЕ проверяет БД, чтобы зависание БД не
+  // приводило к перезапуску контейнера (этим занимается /ready).
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/ready', async (req, res) => {
+  // Readiness-проверка: реальная проверка БД. Оркестраторы (Docker Swarm, k8s)
+  // направляют трафик только при 200 — если БД недоступна, контейнер
+  // исключается из балансировки, не получая новых запросов.
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({ status: 'ready', timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(503).json({
+      status: 'not ready',
+      error: err instanceof Error ? err.message : 'database check failed',
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 app.all('*', (req, res, next) => {

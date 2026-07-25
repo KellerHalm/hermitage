@@ -13,7 +13,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   // nonce не задаём вручную: Next.js извлекает его из CSP-заголовка запроса
-  // (см. middleware.ts) и автоматически применяет к фреймворк-скриптам.
+  // (см. proxy.ts) и автоматически применяет к фреймворк-скриптам.
   return (
     <html lang="ru">
       <head>

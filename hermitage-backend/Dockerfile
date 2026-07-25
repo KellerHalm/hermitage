@@ -15,6 +15,11 @@ COPY src ./src/
 
 RUN mkdir -p uploads/images
 
+# Фиксируем NODE_ENV=production, чтобы Express и errorHandler скрывали
+# стек-трейсы и подробности ошибок от клиентов. Без этого, если env забыли
+# выставить в runtime, errorHandler отдаёт полный stack в ответах.
+ENV NODE_ENV=production
+
 EXPOSE 5000
 
 CMD ["sh", "-c", "npx prisma migrate deploy && node src/server.js"]

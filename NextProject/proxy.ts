@@ -47,7 +47,7 @@ function buildCsp(nonce: string, request: NextRequest): string {
   ].join('; ');
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   // btoa доступен и в Edge runtime, и в Node.js. Buffer в Edge runtime
   // отсутствует, поэтому раньше nonce падал здесь и layout получал пустую строку
   // (hydration mismatch server="" vs client="...").

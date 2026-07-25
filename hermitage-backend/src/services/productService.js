@@ -1,5 +1,6 @@
 ﻿import prisma from '../config/prisma.js';
 import { generateSlug } from '../utils/slugify.js';
+import { parsePagination } from '../utils/pagination.js';
 import AppError from '../utils/AppError.js';
 
 const parseBoolean = (value, fallback = false) => {
@@ -113,8 +114,6 @@ export const createProduct = async (data, files) => {
 
 export const getAllProducts = async (query) => {
   const {
-    page = 1,
-    limit = 120,
     categoryId,
     brandId,
     minPrice,
@@ -127,9 +126,7 @@ export const getAllProducts = async (query) => {
     sort,
   } = query;
 
-  const pageNumber = Number.parseInt(page, 10) || 1;
-  const take = Number.parseInt(limit, 10) || 120;
-  const skip = (pageNumber - 1) * take;
+  const { pageNumber, take, skip } = parsePagination(query, { defaultLimit: 120 });
 
   const where = {};
 

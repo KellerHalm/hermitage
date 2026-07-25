@@ -1,5 +1,6 @@
 ﻿import prisma from '../config/prisma.js';
 import AppError from '../utils/AppError.js';
+import { parsePagination } from '../utils/pagination.js';
 import { sendOrderCreatedEmail, sendOrderStatusEmail } from '../utils/email.js';
 
 const VALID_ORDER_STATUSES = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
@@ -111,10 +112,8 @@ export const getUserOrders = async (userId) => prisma.order.findMany({
 });
 
 export const getAllOrders = async (query) => {
-  const { page = 1, limit = 50, status } = query;
-  const pageNumber = Number.parseInt(page, 10) || 1;
-  const take = Number.parseInt(limit, 10) || 50;
-  const skip = (pageNumber - 1) * take;
+  const { status } = query;
+  const { pageNumber, take, skip } = parsePagination(query, { defaultLimit: 50 });
 
   const where = status ? { status } : {};
 
