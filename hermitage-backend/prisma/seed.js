@@ -1,5 +1,4 @@
 import 'dotenv/config';
-import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import pg from 'pg';
@@ -9,6 +8,11 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    console.error('Do not run seed in production.');
+    process.exit(1);
+  }
+
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.favorite.deleteMany();
@@ -23,33 +27,8 @@ async function main() {
   await prisma.country.deleteMany();
   await prisma.user.deleteMany();
 
-  const adminPassword = await bcrypt.hash('Admin123!', 12);
-  await prisma.user.create({
-    data: {
-      email: 'admin@hermitage-decor.ru',
-      password: adminPassword,
-      firstName: 'Админ',
-      lastName: 'HERMITAGE',
-      phone: '+7 (900) 123-45-67',
-      role: 'ADMIN',
-    },
-  });
-
-  const managerPassword = await bcrypt.hash('Manager123!', 12);
-  await prisma.user.create({
-    data: {
-      email: 'manager@hermitage-decor.ru',
-      password: managerPassword,
-      firstName: 'Менеджер',
-      lastName: 'HERMITAGE',
-      phone: '+7 (900) 123-45-68',
-      role: 'MANAGER',
-    },
-  });
-
-  console.log('Seed completed successfully');
-  console.log('Admin: admin@hermitage-decor.ru / Admin123!');
-  console.log('Manager: manager@hermitage-decor.ru / Manager123!');
+  console.log('Database cleared.');
+  console.log('Use "npm run create-admin" to create an admin user.');
 }
 
 main()

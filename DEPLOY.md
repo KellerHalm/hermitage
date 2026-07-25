@@ -7,7 +7,7 @@
 3. [Настройка сервера](#3-настройка-сервера)
 4. [Загрузка проекта на сервер](#4-загрузка-проекта-на-сервер)
 5. [Настройка переменных окружения](#5-настройка-переменных-окружения)
-6. [Смена логинов/паролей админа и менеджера](#6-смена-логиновпаролей-админа-и-менеджера)
+6. [Создание первого админа](#6-создание-первого-админа)
 7. [Первый запуск (деплой)](#7-первый-запуск-деплой)
 8. [Проверка работоспособности](#8-проверка-работоспособности)
 9. [Настройка SSL-сертификата (HTTPS)](#9-настройка-ssl-сертификата-https)
@@ -56,7 +56,8 @@ hermitage/
 │   ├── Dockerfile
 │   ├── package.json
 │   ├── prisma/schema.prisma ← Схема базы данных
-│   ├── prisma/seed.js       ← Создание аккаунтов admin/manager
+│   ├── prisma/seed.js       ← Очистка БД (development only)
+│   ├── scripts/create-admin.js ← Создание первого админа (CLI)
 │   └── src/                 ← Исходный код backend
 └── NextProject/             ← Frontend (Next.js)
     ├── Dockerfile
@@ -264,57 +265,75 @@ openssl rand -base64 48
 
 ---
 
-## 6. Смена логинов/паролей админа и менеджера
+## 6. Создание первого админа
 
-> **Важно:** Это нужно сделать ДО первого запуска, потому что при деплое seed-скрипт создаёт аккаунты из файла `seed.js`. **Не оставляйте пароли по умолчанию** (`Admin123!`, `Manager123!`) в продакшене!
+> **Важно:** Seed-скрипт (`seed.js`) **не создаёт пользователей** — он только очищает БД и предназначен для development. Для создания первого админа на продакшене используйте CLI-команду `create-admin`.
 
-### 6.1. Откройте файл seed.js
+### 6.1. Создайте админа через CLI
+
+Подключитесь к серверу и выполните:
 
 ```bash
-nano /opt/hermitage/hermitage-backend/prisma/seed.js
+cd /opt/hermitage
+docker compose exec backend npm run create-admin
 ```
 
-### 6.2. Замените данные
+Скрипт попросит ввести email и автоматически сгенерирует надёжный пароль:
 
-Найдите строки с email и паролем админа (примерно строки 26-36):
+```
+Admin email: admin@hermitage-decor.ru
 
-```javascript
-// БЫЛО:
-const adminPassword = await bcrypt.hash('Admin123!', 12);
-await prisma.user.create({
-  data: {
-    email: 'admin@hermitage-decor.ru',
-    password: adminPassword,
-    firstName: 'Админ',
-    lastName: 'HERMITAGE',
-    phone: '+7 (900) 123-45-67',
-    role: 'ADMIN',
-  },
-});
+========================================
+  Admin account created successfully!
+========================================
+  Email:    admin@hermitage-decor.ru
+  Password: xK9#mB2$pL5wR8nQ
+========================================
+  Save this password! It will not be shown again.
+========================================
 ```
 
-Замените на данные клиентки:
+> **Скопируйте пароль и сохраните в надёжное место!** Он больше не будет показан.
 
-```javascript
-// СТАЛО:
-const adminPassword = await bcrypt.hash('ВашНовыйПароль!', 12);
-await prisma.user.create({
-  data: {
-    email: 'client-email@example.com',
-    password: adminPassword,
-    firstName: 'Имя',
-    lastName: 'Фамилия',
-    phone: '+7 (999) 123-45-67',
-    role: 'ADMIN',
-  },
-});
+### 6.2. Создание админа с заданным паролем
+
+Если нужно задать пароль вручную:
+
+```bash
+docker compose exec backend npm run create-admin -- --email=admin@hermitage-decor.ru
 ```
 
-То же самое сделайте для менеджера (примерно строки 38-48).
+Скрипт предложит ввести пароль интерактивно.
 
-### 6.3. Сохраните файл
+### 6.3. Создание менеджера
 
-`Ctrl + O` → `Enter` → `Ctrl + X`
+Менеджеров создаёт **админ** через админ-панель:
+
+1. Войдите в админку с данными админа
+2. Перейдите в **Пользователи** → **Создать**
+3. Укажите email, пароль и роль **MANAGER**
+
+### 6.4. Если админ уже существует
+
+Скрипт `create-admin` проверяет, есть ли уже админ в базе. Если админ уже создан, он выведет:
+
+```
+Admin already exists: admin@hermitage-decor.ru
+To create another admin, do it from the admin panel.
+```
+
+Чтобы создать нового админа, удалите старого через SQL:
+
+```bash
+docker compose exec postgres psql -U postgres -d hermitage_db
+```
+
+```sql
+DELETE FROM "User" WHERE email = 'старый-email@example.com';
+\q
+```
+
+Затем запустите `create-admin` заново.
 
 ---
 
@@ -338,9 +357,19 @@ bash deploy.sh
 5. **Запустит** 4 контейнера: PostgreSQL, backend, frontend, nginx
 6. **Подождёт** 10 секунд, пока база данных запустится
 7. **Применит миграции** базы данных (создаст таблицы)
-8. **Создаст** аккаунты admin и manager
 
-### 7.3. Если всё прошло успешно
+### 7.3. Создайте первого админа
+
+После успешного деплоя создайте первого админа:
+
+```bash
+cd /opt/hermitage
+docker compose exec backend npm run create-admin
+```
+
+Введите email и сохраните сгенерированный пароль (подробнее в разделе 6).
+
+### 7.4. Если всё прошло успешно
 
 Вы увидите сообщение:
 
@@ -355,7 +384,9 @@ Useful commands:
   docker compose restart backend   # Restart backend
 ```
 
-### 7.4. Если есть ошибки
+Затем создайте первого админа (см. раздел 6).
+
+### 7.5. Если есть ошибки
 
 Если скрипт выдал ошибку, см. раздел [13. Решение проблем](#13-решение-проблем).
 
@@ -383,9 +414,9 @@ https://ВАШ_IP
 https://ВАШ_IP/admin/login
 ```
 
-Войдите с данными, которые вы задали в seed.js:
-- **Email**: email, который вы указали для admin
-- **Пароль**: пароль, который вы указали для admin
+Войдите с данными, которые вы создали через `npm run create-admin` (раздел 6):
+- **Email**: email, который вы указали при создании админа
+- **Пароль**: сгенерированный пароль
 
 ### 8.3. Проверьте здоровье backend
 
@@ -752,16 +783,29 @@ systemctl start docker
 
 ---
 
-### Проблема: Seed-скрипт не создал аккаунты
+### Проблема: Нет аккаунта админа / забыли пароль
 
-Если после деплоя нет аккаунтов admin/manager, выполните вручную:
+Создайте нового админа через CLI:
 
 ```bash
 cd /opt/hermitage
-docker compose exec backend node prisma/seed.js
+docker compose exec backend npm run create-admin
 ```
 
-**Внимание:** Это удалит ВСЕ данные из базы и создаст заново!
+Или удалите старого админа и создайте заново:
+
+```bash
+docker compose exec postgres psql -U postgres -d hermitage_db
+```
+
+```sql
+DELETE FROM "User" WHERE email = 'старый-email@example.com';
+\q
+```
+
+```bash
+docker compose exec backend npm run create-admin
+```
 
 ---
 
@@ -821,7 +865,7 @@ docker system prune -a
 
 ### Что нужно сделать дополнительно
 
-1. **Смените пароли** seed-аккаунтов после первого входа
+1. **Создайте первого админа** через `npm run create-admin` (не используйте seed для этого)
 2. **Настройте SSL** (раздел 9) — сертификаты положите в `nginx/ssl/`
 3. **На SSH-сервере** рекомендуется:
    - Использовать SSH-ключи вместо паролей
@@ -836,6 +880,7 @@ docker system prune -a
 | Действие | Команда |
 |---|---|
 | Первый деплой | `bash deploy.sh` |
+| Создать админа | `docker compose exec backend npm run create-admin` |
 | Обновить код | загрузить файлы → `bash deploy.sh` |
 | Посмотреть логи | `docker compose logs -f` |
 | Перезапустить всё | `docker compose restart` |

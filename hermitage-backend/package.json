@@ -8,7 +8,8 @@
     "dev": "nodemon src/server.js",
     "db:migrate": "prisma migrate deploy",
     "db:seed": "node prisma/seed.js",
-    "db:setup": "prisma migrate deploy && node prisma/seed.js"
+    "db:setup": "prisma migrate deploy && node prisma/seed.js",
+    "create-admin": "node scripts/create-admin.js"
   },
   "prisma": {
     "seed": "node prisma/seed.js"
