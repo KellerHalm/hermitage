@@ -7,8 +7,10 @@ const router = express.Router();
 
 router.post('/register', validate(schemas.register), authController.register);
 router.post('/login', validate(schemas.login), authController.login);
+router.post('/refresh', authController.refresh);
+router.post('/logout', authController.logout);
+router.get('/verify-admin', protect, authController.verifyAdmin);
 router.get('/me', protect, authController.getMe);
 router.patch('/me', protect, validate(schemas.updateProfile), authController.updateMe);
 
 export default router;
-

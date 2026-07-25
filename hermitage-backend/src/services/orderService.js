@@ -130,7 +130,10 @@ export const getAllOrders = async (query) => {
           include: {
             product: {
               include: {
-                images: { where: { isMain: true } },
+                images: true,
+                category: { select: { name: true, slug: true } },
+                brand: { select: { name: true, slug: true } },
+                characteristics: true,
               },
             },
           },
@@ -160,7 +163,14 @@ export const updateOrderStatus = async (id, status) => {
     include: {
       items: {
         include: {
-          product: true,
+          product: {
+            include: {
+              images: true,
+              category: { select: { name: true, slug: true } },
+              brand: { select: { name: true, slug: true } },
+              characteristics: true,
+            },
+          },
         },
       },
       user: {

@@ -1,9 +1,8 @@
 'use client';
 
 export function showToast(message: string, type: 'success' | 'error' | 'info' = 'success') {
-  // Создаем элемент уведомления
   const toast = document.createElement('div');
-  
+
   const colors = {
     success: { bg: '#e8f5e9', border: '#2e7d32', text: '#2e7d32' },
     error: { bg: '#ffebee', border: '#c62828', text: '#c62828' },
@@ -27,25 +26,36 @@ export function showToast(message: string, type: 'success' | 'error' | 'info' = 
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     max-width: 400px;
     animation: slideIn 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   `;
 
-  toast.innerHTML = `
-    <span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span>
-    <span>${message}</span>
-    <button onclick="this.parentElement.remove()" style="
-      background: none;
-      border: none;
-      color: ${style.text};
-      cursor: pointer;
-      font-size: 18px;
-      margin-left: 12px;
-      opacity: 0.6;
-    ">×</button>
+  const iconSpan = document.createElement('span');
+  iconSpan.textContent = type === 'success' ? '\u2713' : type === 'error' ? '\u2715' : '\u2139';
+
+  const messageSpan = document.createElement('span');
+  messageSpan.textContent = message;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '\u00d7';
+  closeBtn.addEventListener('click', () => toast.remove());
+  closeBtn.style.cssText = `
+    background: none;
+    border: none;
+    color: ${style.text};
+    cursor: pointer;
+    font-size: 18px;
+    margin-left: 12px;
+    opacity: 0.6;
   `;
+
+  toast.appendChild(iconSpan);
+  toast.appendChild(messageSpan);
+  toast.appendChild(closeBtn);
 
   document.body.appendChild(toast);
 
-  // Автозакрытие через 3 секунды
   setTimeout(() => {
     toast.style.opacity = '0';
     toast.style.transition = 'opacity 0.3s ease';

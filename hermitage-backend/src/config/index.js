@@ -6,10 +6,8 @@ const clientUrlRaw = process.env.CLIENT_URL || 'http://localhost:3000';
 const clientOrigins = clientUrlRaw.split(',').map((s) => s.trim());
 
 const jwtSecret = process.env.JWT_SECRET;
-if (!jwtSecret || jwtSecret === 'secret') {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET must be set to a secure random string in production');
-  }
+if (!jwtSecret || jwtSecret === 'secret' || jwtSecret === 'your_super_secret_jwt_key_here') {
+  throw new Error('JWT_SECRET must be set to a secure random string (min 32 chars)');
 }
 
 export const config = {
@@ -17,8 +15,9 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   clientUrl: clientUrlRaw,
   clientOrigins,
-  jwtSecret: jwtSecret || 'dev-secret-not-for-production',
-  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  jwtSecret,
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m',
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
   emailHost: process.env.SMTP_HOST || 'smtp.ethereal.email',
   emailPort: Number(process.env.SMTP_PORT) || 587,
   emailSecure: process.env.SMTP_SECURE === 'true',

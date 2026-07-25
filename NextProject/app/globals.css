@@ -227,21 +227,18 @@ body.search-open .site-header--hero .site-nav a {
   text-align: center;
 }
 
-/* ===== ПОИСКОВАЯ ПАНЕЛЬ (ИСПРАВЛЕННАЯ) ===== */
+/* ===== ПОИСКОВАЯ ПАНЕЛЬ ===== */
 .search-panel {
   position: fixed;
   inset: 0;
   z-index: 9999;
-
   display: none;
-
-  background: rgba(0,0,0,0.35); /* ВОТ ЭТО ВАЖНО */
+  background: rgba(0,0,0,0.5);
   backdrop-filter: blur(4px);
-
-  align-items: flex-start;
-  justify-content: center;
-
-  padding-top: 120px;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 100px;
+  overflow-y: auto;
 }
 
 .search-panel.is-open {
@@ -250,20 +247,23 @@ body.search-open .site-header--hero .site-nav a {
 
 .search-panel__box {
   background: white;
-  padding: 16px;
-  border-radius: 12px;
+  padding: 12px 16px;
+  border-radius: 16px;
   width: 90%;
-  max-width: 600px;
-
+  max-width: 640px;
   display: flex;
   gap: 12px;
   align-items: center;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  position: sticky;
+  top: 100px;
+  z-index: 1;
 }
 
 .search-panel__box input {
   flex: 1;
   padding: 14px 20px;
-  border: 1px solid var(--border);
+  border: 1px solid var(--border, #ddd);
   border-radius: 40px;
   font-size: 1rem;
   font-family: inherit;
@@ -272,7 +272,184 @@ body.search-open .site-header--hero .site-nav a {
 }
 
 .search-panel__box input:focus {
-  border-color: var(--gold);
+  border-color: var(--gold, #b89968);
+}
+
+/* Search results container */
+.search-results {
+  width: 90%;
+  max-width: 640px;
+  margin-top: 12px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  overflow: hidden;
+  animation: searchFadeIn 0.15s ease;
+}
+
+@keyframes searchFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.search-results__loader {
+  padding: 32px;
+  text-align: center;
+  color: #888;
+  font-size: 14px;
+}
+
+.search-results__section {
+  padding: 16px 20px;
+}
+
+.search-results__section + .search-results__section {
+  border-top: 1px solid #f0f0f0;
+}
+
+.search-results__heading {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #999;
+  margin: 0 0 12px;
+}
+
+/* Product cards in search results */
+.search-results__products {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.search-product-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px;
+  border-radius: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background 0.15s;
+}
+
+.search-product-card:hover {
+  background: #f7f7f5;
+}
+
+.search-product-card__img {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f5f5f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-product-card__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.search-product-card__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.search-product-card__name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-product-card__price {
+  font-size: 13px;
+  color: #b89968;
+  font-weight: 600;
+}
+
+/* Category and brand links */
+.search-results__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.search-results__link {
+  display: inline-block;
+  padding: 8px 16px;
+  background: #f5f5f0;
+  border-radius: 20px;
+  text-decoration: none;
+  color: #333;
+  font-size: 13px;
+  transition: background 0.15s, color 0.15s;
+}
+
+.search-results__link:hover {
+  background: #1a1a1a;
+  color: #fff;
+}
+
+/* Empty state */
+.search-results__empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+}
+
+/* "All results" button */
+.search-results__all {
+  display: block;
+  width: 100%;
+  padding: 14px;
+  background: none;
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  text-align: center;
+  font-size: 13px;
+  color: #b89968;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.search-results__all:hover {
+  background: #f7f7f5;
+}
+
+@media (max-width: 600px) {
+  .search-panel {
+    padding-top: 70px;
+  }
+
+  .search-panel__box {
+    width: 94%;
+    top: 70px;
+    padding: 10px 12px;
+  }
+
+  .search-results {
+    width: 94%;
+    margin-top: 8px;
+  }
+
+  .search-product-card__img {
+    width: 48px;
+    height: 48px;
+  }
 }
 
 /* ===== ПРЕМИАЛЬНОЕ БУРГЕР-МЕНЮ ===== */
@@ -2371,6 +2548,10 @@ html, body {
 @media (max-width: 1024px) {
   .search-panel {
     padding-top: 80px;
+  }
+
+  .search-panel__box {
+    top: 80px;
   }
 }
 

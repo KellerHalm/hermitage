@@ -1,13 +1,39 @@
 ﻿import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import prisma from '../config/prisma.js';
 import { config } from '../config/index.js';
 import AppError from '../utils/AppError.js';
 import { sendWelcomeEmail } from '../utils/email.js';
 
-const signToken = (id) => jwt.sign({ id }, config.jwtSecret, {
+const signAccessToken = (id) => jwt.sign({ id }, config.jwtSecret, {
   expiresIn: config.jwtExpiresIn,
 });
+
+const signRefreshToken = (id, jti) => jwt.sign({ id, jti }, config.jwtSecret, {
+  expiresIn: config.jwtRefreshExpiresIn,
+});
+
+const parseDuration = (duration) => {
+  const match = duration.match(/^(\d+)([smhd])$/);
+  if (!match) return 30 * 24 * 60 * 60 * 1000;
+  const num = parseInt(match[1], 10);
+  const unit = match[2];
+  const multipliers = { s: 1000, m: 60 * 1000, h: 60 * 60 * 1000, d: 24 * 60 * 60 * 1000 };
+  return num * multipliers[unit];
+};
+
+const createRefreshToken = async (userId) => {
+  const jti = crypto.randomUUID();
+  const token = signRefreshToken(userId, jti);
+  const expiresAt = new Date(Date.now() + parseDuration(config.jwtRefreshExpiresIn));
+
+  await prisma.refreshToken.create({
+    data: { token, userId, expiresAt },
+  });
+
+  return token;
+};
 
 const sanitizeUser = (user) => {
   const nextUser = { ...user };
@@ -35,11 +61,12 @@ export const registerUser = async (data) => {
     },
   });
 
-  const token = signToken(newUser.id);
+  const token = signAccessToken(newUser.id);
+  const refreshToken = await createRefreshToken(newUser.id);
 
   void sendWelcomeEmail({ email, firstName }).catch(() => {});
 
-  return { user: sanitizeUser(newUser), token };
+  return { user: sanitizeUser(newUser), token, refreshToken };
 };
 
 export const loginUser = async (email, password) => {
@@ -53,9 +80,58 @@ export const loginUser = async (email, password) => {
     throw new AppError('Incorrect email or password', 401);
   }
 
-  const token = signToken(user.id);
+  const token = signAccessToken(user.id);
+  const refreshToken = await createRefreshToken(user.id);
 
-  return { user: sanitizeUser(user), token };
+  return { user: sanitizeUser(user), token, refreshToken };
+};
+
+export const refreshUserToken = async (refreshToken) => {
+  if (!refreshToken) {
+    throw new AppError('Refresh token required', 401);
+  }
+
+  let decoded;
+  try {
+    decoded = jwt.verify(refreshToken, config.jwtSecret);
+  } catch {
+    throw new AppError('Invalid or expired refresh token', 401);
+  }
+
+  const stored = await prisma.refreshToken.findUnique({
+    where: { token: refreshToken },
+  });
+
+  if (!stored) {
+    throw new AppError('Refresh token not found (already used or revoked)', 401);
+  }
+
+  if (stored.expiresAt < new Date()) {
+    await prisma.refreshToken.delete({ where: { id: stored.id } });
+    throw new AppError('Refresh token expired', 401);
+  }
+
+  await prisma.refreshToken.delete({ where: { id: stored.id } });
+
+  const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+  if (!user) {
+    throw new AppError('User no longer exists', 401);
+  }
+
+  const newAccessToken = signAccessToken(user.id);
+  const newRefreshToken = await createRefreshToken(user.id);
+
+  return { token: newAccessToken, refreshToken: newRefreshToken };
+};
+
+export const logoutUser = async (refreshToken) => {
+  if (refreshToken) {
+    await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
+  }
+};
+
+export const revokeAllUserTokens = async (userId) => {
+  await prisma.refreshToken.deleteMany({ where: { userId } });
 };
 
 export const updateUser = async (id, data) => {
@@ -76,4 +152,3 @@ export const updateUser = async (id, data) => {
 
   return sanitizeUser(user);
 };
-

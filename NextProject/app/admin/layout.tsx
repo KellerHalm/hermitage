@@ -4,18 +4,38 @@ import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Store } from '@/lib/store';
+import { api } from '@/lib/api';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [verified, setVerified] = useState(false);
 
   useEffect(() => {
-    if (pathname === '/admin/login') return;
-
-    if (!Store.isAuthenticated() || !Store.isAdmin()) {
-      router.push('/admin/login');
+    if (pathname === '/admin/login') {
+      setVerified(true);
+      return;
     }
+
+    const token = Store.token();
+    if (!token) {
+      router.push('/admin/login');
+      return;
+    }
+
+    api.verifyAdmin(token)
+      .then((res) => {
+        const role = res?.data?.user?.role;
+        if (role !== 'ADMIN' && role !== 'MANAGER') {
+          router.push('/admin/login');
+        } else {
+          setVerified(true);
+        }
+      })
+      .catch(() => {
+        router.push('/admin/login');
+      });
   }, [pathname, router]);
 
   const handleLogout = () => {
@@ -32,6 +52,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/orders', label: 'Заказы' },
     { href: '/admin/users', label: 'Пользователи' },
   ];
+
+  if (!verified) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', background: '#f5f5f0', alignItems: 'center', justifyContent: 'center' }}>
+        <p style={{ color: '#666', fontSize: '14px' }}>Проверка доступа...</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f5f5f0' }}>
@@ -155,4 +183,3 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </div>
   );
 }
-

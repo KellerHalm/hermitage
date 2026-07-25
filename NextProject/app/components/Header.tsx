@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Store } from '../../lib/store';
 import { getCategoryUrl, getProductUrl } from '@/lib/urls';
+import { buildAssetUrl } from '../../lib/api';
 import BurgerMenu from './BurgerMenu';
 
 type SearchResult = {
@@ -83,10 +84,13 @@ export default function Header({ variant = 'solid' }: { variant?: 'solid' | 'her
       } catch {
         const q = searchQuery.trim().toLowerCase();
         const products = Store.getProducts().filter((p: any) =>
-          p.name.toLowerCase().includes(q) ||
+          p.name?.toLowerCase().includes(q) ||
           p.factory?.toLowerCase().includes(q) ||
-          p.country?.toLowerCase().includes(q)
-        ).slice(0, 5);
+          p.country?.toLowerCase().includes(q) ||
+          p.sku?.toLowerCase().includes(q) ||
+          p.categoryName?.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q)
+        ).slice(0, 8);
         setSearchResults({ products, categories: [], brands: [] });
       } finally {
         setSearchLoading(false);
@@ -148,15 +152,16 @@ export default function Header({ variant = 'solid' }: { variant?: 'solid' | 'her
         </div>
       </header>
 
-      <div className={`search-panel ${searchOpen ? 'is-open' : ''}`}>
-        <div className="search-panel__box">
+      <div className={`search-panel ${searchOpen ? 'is-open' : ''}`} onClick={() => setSearchOpen(false)}>
+        <div className="search-panel__box" onClick={(e) => e.stopPropagation()}>
           <input
             type="search"
-            placeholder="Поиск..."
+            placeholder="Поиск товаров, категорий, брендов..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') goToCatalog();
+              if (e.key === 'Escape') setSearchOpen(false);
             }}
             autoFocus={searchOpen}
           />
@@ -170,66 +175,85 @@ export default function Header({ variant = 'solid' }: { variant?: 'solid' | 'her
         </div>
 
         {searchQuery.trim() && (
-          <div className="container" style={{ paddingBottom: 24 }}>
-            {searchLoading && <p style={{ color: '#666', fontSize: 14 }}>Поиск...</p>}
+          <div className="search-results" onClick={(e) => e.stopPropagation()}>
+            {searchLoading && <div className="search-results__loader">Поиск...</div>}
+
             {!searchLoading && hasResults && (
-              <div style={{ background: '#fff', borderRadius: 8, padding: 16, maxWidth: 600, margin: '0 auto', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+              <>
                 {searchResults!.products.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <p style={{ fontSize: 12, color: '#999', marginBottom: 8, textTransform: 'uppercase' }}>Товары</p>
-                    {searchResults!.products.map((p: any) => (
-                      <Link
-                        key={p.id}
-                        href={getProductUrl(p)}
-                        onClick={() => setSearchOpen(false)}
-                        style={{ display: 'block', padding: '8px 0', borderBottom: '1px solid #eee', color: '#333', textDecoration: 'none' }}
-                      >
-                        {p.name}
-                      </Link>
-                    ))}
+                  <div className="search-results__section">
+                    <p className="search-results__heading">Товары</p>
+                    <div className="search-results__products">
+                      {searchResults!.products.map((p: any) => (
+                        <Link
+                          key={p.id}
+                          href={getProductUrl(p)}
+                          onClick={() => setSearchOpen(false)}
+                          className="search-product-card"
+                        >
+                          <div className="search-product-card__img">
+                            <img
+                              src={p.image || p.images?.[0] || buildAssetUrl(null)}
+                              alt={p.name || 'Товар'}
+                              loading="lazy"
+                            />
+                          </div>
+                          <div className="search-product-card__info">
+                            <span className="search-product-card__name">{p.name || 'Без названия'}</span>
+                            <span className="search-product-card__price">{typeof p.price === 'number' ? p.price.toLocaleString('ru-RU') + ' \u20BD' : ''}</span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 )}
+
                 {searchResults!.categories.length > 0 && (
-                  <div style={{ marginBottom: 16 }}>
-                    <p style={{ fontSize: 12, color: '#999', marginBottom: 8, textTransform: 'uppercase' }}>Категории</p>
-                    {searchResults!.categories.map((c: any) => (
-                      <Link
-                        key={c.id}
-                        href={getCategoryUrl(c)}
-                        onClick={() => setSearchOpen(false)}
-                        style={{ display: 'block', padding: '8px 0', borderBottom: '1px solid #eee', color: '#333', textDecoration: 'none' }}
-                      >
-                        {c.name}
-                      </Link>
-                    ))}
+                  <div className="search-results__section">
+                    <p className="search-results__heading">Категории</p>
+                    <div className="search-results__links">
+                      {searchResults!.categories.map((c: any) => (
+                        <Link
+                          key={c.id}
+                          href={getCategoryUrl(c)}
+                          onClick={() => setSearchOpen(false)}
+                          className="search-results__link"
+                        >
+                          {c.name}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 )}
+
                 {searchResults!.brands.length > 0 && (
-                  <div>
-                    <p style={{ fontSize: 12, color: '#999', marginBottom: 8, textTransform: 'uppercase' }}>Бренды</p>
-                    {searchResults!.brands.map((b: any) => (
-                      <Link
-                        key={b.id}
-                        href={`/catalog?search=${encodeURIComponent(b.name)}`}
-                        onClick={() => setSearchOpen(false)}
-                        style={{ display: 'block', padding: '8px 0', borderBottom: '1px solid #eee', color: '#333', textDecoration: 'none' }}
-                      >
-                        {b.name}
-                      </Link>
-                    ))}
+                  <div className="search-results__section">
+                    <p className="search-results__heading">Бренды</p>
+                    <div className="search-results__links">
+                      {searchResults!.brands.map((b: any) => (
+                        <Link
+                          key={b.id}
+                          href={`/catalog?search=${encodeURIComponent(b.name)}`}
+                          onClick={() => setSearchOpen(false)}
+                          className="search-results__link"
+                        >
+                          {b.name}
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 )}
-              </div>
+              </>
             )}
+
             {!searchLoading && !hasResults && (
-              <p style={{ color: '#666', fontSize: 14, textAlign: 'center' }}>Ничего не найдено</p>
+              <div className="search-results__empty">Ничего не найдено</div>
             )}
+
             {!searchLoading && searchQuery.trim() && (
-              <p style={{ textAlign: 'center', marginTop: 12 }}>
-                <button type="button" className="btn btn--outline btn--sm" onClick={goToCatalog}>
-                  Все результаты по запросу «{searchQuery.trim()}»
-                </button>
-              </p>
+              <button type="button" className="search-results__all" onClick={goToCatalog}>
+                Все результаты по запросу &laquo;{searchQuery.trim()}&raquo;
+              </button>
             )}
           </div>
         )}

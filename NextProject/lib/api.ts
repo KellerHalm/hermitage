@@ -29,13 +29,71 @@ const buildHeaders = (options: RequestOptions) => {
   return headers;
 };
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+let isRefreshing = false;
+let refreshPromise: Promise<string> | null = null;
+
+const attemptRefresh = async (): Promise<string> => {
+  if (typeof window === 'undefined') throw new Error('No refresh available');
+
+  const refreshToken = localStorage.getItem('hd_refresh_token');
+  if (!refreshToken) throw new Error('No refresh token');
+
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise;
+  }
+
+  isRefreshing = true;
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(`${API_BASE}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+
+      if (!response.ok) {
+        localStorage.removeItem('hd_token');
+        localStorage.removeItem('hd_refresh_token');
+        throw new Error('Refresh failed');
+      }
+
+      const data = await response.json();
+      const newToken = data.token as string;
+      const newRefreshToken = data.refreshToken as string;
+
+      localStorage.setItem('hd_token', newToken);
+      localStorage.setItem('hd_refresh_token', newRefreshToken);
+
+      return newToken;
+    } finally {
+      isRefreshing = false;
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
+};
+
+async function request<T>(path: string, options: RequestOptions = {}, retryOn401 = true): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
     method: options.method || 'GET',
     headers: buildHeaders(options),
     body: options.body,
     cache: 'no-store',
   });
+
+  if (response.status === 401 && retryOn401 && options.token) {
+    try {
+      const newToken = await attemptRefresh();
+      return request<T>(path, { ...options, token: newToken }, false);
+    } catch {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('hd_token');
+        localStorage.removeItem('hd_refresh_token');
+        window.dispatchEvent(new Event('auth:logout'));
+      }
+    }
+  }
 
   if (!response.ok) {
     let message = 'Request failed';
@@ -109,6 +167,9 @@ export const api = {
   search: (q: string) => request<any>(`/search?q=${encodeURIComponent(q)}`),
   login: (payload: { email: string; password: string }) => request<any>('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
   register: (payload: { email: string; password: string; firstName: string; lastName: string; phone: string }) => request<any>('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
+  refresh: (refreshToken: string) => request<any>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) }, false),
+  logout: (refreshToken: string) => request<any>('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken }) }, false),
+  verifyAdmin: (token: string) => request<any>('/auth/verify-admin', { token }),
   getMe: (token: string) => request<any>('/auth/me', { token }),
   updateMe: (token: string, payload: Record<string, unknown>) => request<any>('/auth/me', { method: 'PATCH', token, body: JSON.stringify(payload) }),
   getFavorites: (token: string) => request<any>('/favorites', { token }),

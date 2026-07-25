@@ -2,6 +2,7 @@
 
 const APP_VERSION = '3.0.0';
 const TOKEN_KEY = 'hd_token';
+const REFRESH_TOKEN_KEY = 'hd_refresh_token';
 const USER_KEY = 'hd_user';
 const GUEST_KEY = 'hd_guest_id';
 const PRODUCTS_KEY = 'hd_products';
@@ -57,11 +58,24 @@ type OrderStatus = 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELL
 
 type OrderItem = {
   id: string;
+  slug: string;
   name: string;
   image?: string;
+  images?: string[];
   sku?: string;
   qty: number;
   price?: number;
+  oldPrice?: number;
+  description?: string;
+  category?: string;
+  brand?: string;
+  country?: string;
+  material?: string;
+  color?: string;
+  sizes?: string;
+  inStock?: boolean | string;
+  stockQuantity?: number | null;
+  characteristics?: { name: string; value: string }[];
 };
 
 type Order = {
@@ -168,14 +182,32 @@ const normalizeOrder = (order: any): Order => ({
   address: order?.shippingAddress || '',
   comment: order?.comment || '',
   items: Array.isArray(order?.items)
-    ? order.items.map((item: any) => ({
-        id: String(item?.productId || item?.product?.id || item?.id || ''),
-        name: item?.product?.title || item?.name || '',
-        image: buildAssetUrl(item?.product?.images?.[0]?.url),
-        sku: item?.product?.sku || '',
-        qty: item?.quantity || item?.qty || 1,
-        price: toNumber(item?.price),
-      }))
+    ? order.items.map((item: any) => {
+        const p = item?.product || {};
+        return {
+          id: String(item?.productId || p?.id || item?.id || ''),
+          slug: p?.slug || '',
+          name: p?.title || item?.name || '',
+          image: buildAssetUrl(p?.images?.[0]?.url) || buildAssetUrl(item?.image),
+          images: Array.isArray(p?.images) ? p.images.map((img: any) => buildAssetUrl(img?.url)).filter(Boolean) : [],
+          sku: p?.sku || '',
+          qty: item?.quantity || item?.qty || 1,
+          price: toNumber(item?.price),
+          oldPrice: p?.oldPrice ? toNumber(p?.oldPrice) : null,
+          description: p?.description || '',
+          category: p?.category?.name || '',
+          brand: p?.brand?.name || '',
+          country: p?.country || '',
+          material: p?.material || '',
+          color: p?.color || '',
+          sizes: p?.sizes || '',
+          inStock: toStockValue(p?.stockStatus || 'IN_STOCK'),
+          stockQuantity: p?.stockQuantity ?? null,
+          characteristics: Array.isArray(p?.characteristics)
+            ? p.characteristics.map((ch: any) => ({ name: ch.name || '', value: ch.value || '' }))
+            : [],
+        };
+      })
     : [],
   total: toNumber(order?.totalAmount),
 });
@@ -218,6 +250,17 @@ const setToken = (token: string | null) => {
   if (typeof window === 'undefined') return;
   if (token) localStorage.setItem(TOKEN_KEY, token);
   else localStorage.removeItem(TOKEN_KEY);
+};
+
+const getRefreshToken = () => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+};
+
+const setRefreshToken = (token: string | null) => {
+  if (typeof window === 'undefined') return;
+  if (token) localStorage.setItem(REFRESH_TOKEN_KEY, token);
+  else localStorage.removeItem(REFRESH_TOKEN_KEY);
 };
 
 const getGuestId = () => {
@@ -366,6 +409,7 @@ const syncUserData = async () => {
     const message = err?.message || '';
     if (message.includes('User no longer exists') || message.includes('Not authorized') || message.includes('Invalid or expired token')) {
       setToken(null);
+      setRefreshToken(null);
       clearUserData();
       notify();
     }
@@ -399,6 +443,13 @@ const requireToken = () => {
 export const Store = {
   init() {
     if (typeof window === 'undefined') return;
+
+    window.addEventListener('auth:logout', () => {
+      setToken(null);
+      setRefreshToken(null);
+      clearUserData();
+      notify();
+    });
 
     const version = localStorage.getItem(VERSION_KEY);
 
@@ -552,8 +603,10 @@ export const Store = {
   async login(email: string, password: string) {
     const response = await api.login({ email, password });
     const token = response?.token as string;
+    const refreshToken = response?.refreshToken as string;
     const user = normalizeUser(response?.data?.user);
     setToken(token || null);
+    setRefreshToken(refreshToken || null);
     setCurrentUser(user);
     if (token) {
       await mergeAndSyncCart(token);
@@ -568,8 +621,10 @@ export const Store = {
   async register(payload: { email: string; password: string; firstName: string; lastName: string; phone: string }) {
     const response = await api.register(payload);
     const token = response?.token as string;
+    const refreshToken = response?.refreshToken as string;
     const user = normalizeUser(response?.data?.user);
     setToken(token || null);
+    setRefreshToken(refreshToken || null);
     setCurrentUser(user);
     if (token) {
       await mergeAndSyncCart(token);
@@ -590,7 +645,12 @@ export const Store = {
     return user;
   },
   logout() {
+    const refreshToken = getRefreshToken();
+    if (refreshToken) {
+      void api.logout(refreshToken).catch(() => undefined);
+    }
     setToken(null);
+    setRefreshToken(null);
     clearUserData();
     void syncCart().catch(() => undefined);
     notify();

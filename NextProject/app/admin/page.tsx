@@ -1,11 +1,9 @@
 ﻿'use client';
 import { Store } from '@/lib/store';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 export default function AdminDashboard() {
-  const router = useRouter();
   const [stats, setStats] = useState({
     products: 0,
     categories: 0,
@@ -15,11 +13,6 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
-    if (!Store.isAuthenticated() || !Store.isAdmin()) {
-      router.push('/admin/login');
-      return;
-    }
-
     const load = async () => {
       await Promise.all([
         Store.syncPublicData(),
@@ -41,7 +34,7 @@ export default function AdminDashboard() {
     };
 
     void load();
-  }, [router]);
+  }, []);
 
   return (
     <div style={{ padding: '40px', background: '#f5f5f0', minHeight: '100vh' }}>
