@@ -181,7 +181,7 @@ export default function UsersPage() {
             <h2 className="admin-modal-title">Добавить пользователя</h2>
 
             <div className="admin-field"><label>Email</label><input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} /></div>
-            <div className="admin-field"><label>Пароль</label><input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} /></div>
+            <div className="admin-field"><label>Пароль</label><input type="password" value={formData.password} onChange={(e) => setFormData({ ...formData, password: e.target.value })} required minLength={8} /></div>
             <div className="admin-field"><label>Имя</label><input type="text" value={formData.firstName} onChange={(e) => setFormData({ ...formData, firstName: e.target.value })} /></div>
             <div className="admin-field"><label>Фамилия</label><input type="text" value={formData.lastName} onChange={(e) => setFormData({ ...formData, lastName: e.target.value })} /></div>
             <div className="admin-field"><label>Телефон</label><input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} /></div>

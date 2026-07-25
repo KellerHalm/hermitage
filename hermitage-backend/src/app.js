@@ -36,11 +36,19 @@ app.use(helmet({
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || config.clientOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
+      const allowed = config.clientOrigins.includes(origin);
+      // В development пропускаем запросы без Origin (curl, Postman, SSR-вызовы).
+      // В production запросы без Origin отклоняются.
+      if (!origin) {
+        if (config.nodeEnv === 'development') {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
       }
+      if (!allowed) {
+        return callback(new Error('Not allowed by CORS'));
+      }
+      callback(null, true);
     },
     credentials: true,
   })

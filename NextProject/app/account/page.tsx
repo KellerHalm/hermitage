@@ -174,7 +174,7 @@ export default function AccountPage() {
                 </div>
                 <div className="form-group">
                   <label>Пароль</label>
-                  <input type="password" name="password" required minLength={6} />
+                  <input type="password" name="password" required minLength={8} />
                 </div>
                 <button type="submit" className="btn btn--primary btn--block" disabled={loading}>
                   {loading ? 'Регистрация...' : 'Зарегистрироваться'}
