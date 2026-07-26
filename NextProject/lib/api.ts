@@ -172,6 +172,7 @@ export const api = {
   verifyAdmin: (token: string) => request<any>('/auth/verify-admin', { token }),
   getMe: (token: string) => request<any>('/auth/me', { token }),
   updateMe: (token: string, payload: Record<string, unknown>) => request<any>('/auth/me', { method: 'PATCH', token, body: JSON.stringify(payload) }),
+  deleteMe: (token: string) => request<any>('/auth/me', { method: 'DELETE', token }),
   getFavorites: (token: string) => request<any>('/favorites', { token }),
   addFavorite: (token: string, productId: string) => request<any>('/favorites', { method: 'POST', token, body: JSON.stringify({ productId }) }),
   removeFavorite: (token: string, productId: string) => request<any>(`/favorites/${productId}`, { method: 'DELETE', token }),
@@ -206,4 +207,8 @@ export const api = {
   createUser: (token: string, payload: Record<string, unknown>) => request<any>('/users', { method: 'POST', token, body: JSON.stringify(payload) }),
   updateUser: (token: string, id: string, payload: Record<string, unknown>) => request<any>(`/users/${id}`, { method: 'PATCH', token, body: JSON.stringify(payload) }),
   deleteUser: (token: string, id: string) => request<any>(`/users/${id}`, { method: 'DELETE', token }),
+  getNotifications: (token: string) => request<any>('/notifications', { token }),
+  getNotificationUnreadCount: (token: string) => request<any>('/notifications/unread-count', { token }),
+  markNotificationAsRead: (token: string, id: string) => request<any>(`/notifications/${id}/read`, { method: 'PATCH', token }),
+  markAllNotificationsAsRead: (token: string) => request<any>('/notifications/read-all', { method: 'PATCH', token }),
 };

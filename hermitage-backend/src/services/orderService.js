@@ -2,6 +2,7 @@
 import AppError from '../utils/AppError.js';
 import { parsePagination } from '../utils/pagination.js';
 import { sendOrderCreatedEmail, sendOrderStatusEmail } from '../utils/email.js';
+import { createOrderNotification } from './notificationService.js';
 
 const VALID_ORDER_STATUSES = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
@@ -59,40 +60,68 @@ export const createOrder = async (userId, data) => {
     };
   });
 
-  return prisma.order.create({
-    data: {
-      userId,
-      totalAmount,
-      shippingAddress: shippingAddress || null,
-      paymentMethod: paymentMethod || null,
-      deliveryType: deliveryType || null,
-      comment: comment || null,
-      customerFirstName: customerFirstName || null,
-      customerLastName: customerLastName || null,
-      customerPhone: customerPhone || null,
-      customerEmail: customerEmail || null,
-      items: {
-        create: orderItemsData,
+  const order = await prisma.$transaction(async (tx) => {
+    const createdOrder = await tx.order.create({
+      data: {
+        userId,
+        totalAmount,
+        shippingAddress: shippingAddress || null,
+        paymentMethod: paymentMethod || null,
+        deliveryType: deliveryType || null,
+        comment: comment || null,
+        customerFirstName: customerFirstName || null,
+        customerLastName: customerLastName || null,
+        customerPhone: customerPhone || null,
+        customerEmail: customerEmail || null,
+        items: {
+          create: orderItemsData,
+        },
       },
-    },
-    include: {
-      items: {
-        include: {
-          product: {
-            include: {
-              images: { where: { isMain: true } },
+      include: {
+        items: {
+          include: {
+            product: {
+              include: {
+                images: { where: { isMain: true } },
+              },
             },
           },
         },
+        user: {
+          select: { email: true },
+        },
       },
-      user: {
-        select: { email: true },
-      },
-    },
-  }).then(async (order) => {
-    void sendOrderCreatedEmail(order).catch(() => {});
-    return order;
+    });
+
+    for (const item of items) {
+      const product = products.find((entry) => entry.id === item.productId);
+      const newQuantity = product.stockQuantity !== null ? product.stockQuantity - item.quantity : null;
+
+      const updateData = {};
+
+      if (newQuantity !== null) {
+        updateData.stockQuantity = newQuantity;
+        if (newQuantity <= 0 && product.stockStatus === 'IN_STOCK') {
+          updateData.stockStatus = 'OUT_OF_STOCK';
+        }
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: updateData,
+        });
+      }
+    }
+
+    return createdOrder;
   });
+
+  void sendOrderCreatedEmail(order).catch(() => {});
+  createOrderNotification(order.userId, order.id, 'ORDER_CREATED')
+    .catch((err) => console.error('[orderService] Failed to create notification:', err));
+
+  return order;
 };
 
 export const getUserOrders = async (userId) => prisma.order.findMany({
@@ -180,6 +209,8 @@ export const updateOrderStatus = async (id, status) => {
   });
 
   void sendOrderStatusEmail(order, status).catch(() => {});
+  createOrderNotification(order.userId, order.id, status)
+    .catch((err) => console.error('[orderService] Failed to create notification:', err));
 
   return order;
 };

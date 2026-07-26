@@ -636,7 +636,7 @@ export const Store = {
     }
     return user;
   },
-  async updateProfile(payload: { firstName: string; lastName: string; phone: string; password?: string }) {
+  async updateProfile(payload: { firstName: string; lastName: string; phone: string; email?: string; password?: string }) {
     const token = requireToken();
     const response = await api.updateMe(token, payload);
     const user = normalizeUser(response?.data?.user);
@@ -649,6 +649,15 @@ export const Store = {
     if (refreshToken) {
       void api.logout(refreshToken).catch(() => undefined);
     }
+    setToken(null);
+    setRefreshToken(null);
+    clearUserData();
+    void syncCart().catch(() => undefined);
+    notify();
+  },
+  async deleteAccount() {
+    const token = requireToken();
+    await api.deleteMe(token);
     setToken(null);
     setRefreshToken(null);
     clearUserData();
@@ -911,5 +920,39 @@ export const Store = {
       window.removeEventListener('storage', handler);
       window.removeEventListener('products:update', handler);
     };
+  },
+
+  async getNotifications() {
+    const token = getToken();
+    if (!token) return [];
+    try {
+      const response = await api.getNotifications(token);
+      return response?.data?.notifications || [];
+    } catch {
+      return [];
+    }
+  },
+
+  async getNotificationUnreadCount() {
+    const token = getToken();
+    if (!token) return 0;
+    try {
+      const response = await api.getNotificationUnreadCount(token);
+      return response?.data?.count || 0;
+    } catch {
+      return 0;
+    }
+  },
+
+  async markNotificationAsRead(id: string) {
+    const token = getToken();
+    if (!token) return;
+    await api.markNotificationAsRead(token, id);
+  },
+
+  async markAllNotificationsAsRead() {
+    const token = getToken();
+    if (!token) return;
+    await api.markAllNotificationsAsRead(token);
   },
 };

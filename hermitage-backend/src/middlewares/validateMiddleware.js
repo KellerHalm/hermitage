@@ -37,6 +37,7 @@ export const schemas = {
     firstName: Joi.string().max(100).allow('', null),
     lastName: Joi.string().max(100).allow('', null),
     phone: Joi.string().max(20).allow('', null),
+    email: Joi.string().email().max(255).optional(),
     password: Joi.string().min(8).max(128).optional(),
   }).min(1),
 

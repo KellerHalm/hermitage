@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
@@ -10,20 +11,29 @@ import Toast from '../components/Toast';
 import { Store } from '@/lib/store';
 
 export default function AccountPage() {
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'login' | 'register' | 'profile' | 'favorites' | 'orders'>('login');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
+  const [orderFilter, setOrderFilter] = useState<string>('');
 
   useEffect(() => {
+    const tabParam = searchParams.get('tab');
+
     const apply = () => {
       const currentUser = Store.user();
       setUser(currentUser);
       setProducts(Store.getProducts());
       setOrders(Store.orders());
-      setActiveTab(currentUser ? 'profile' : 'login');
+
+      if (currentUser && tabParam && ['profile', 'favorites', 'orders'].includes(tabParam)) {
+        setActiveTab(tabParam as any);
+      } else {
+        setActiveTab(currentUser ? 'profile' : 'login');
+      }
     };
 
     apply();
@@ -33,7 +43,7 @@ export default function AccountPage() {
     const handler = () => apply();
     window.addEventListener('storage', handler);
     return () => window.removeEventListener('storage', handler);
-  }, []);
+  }, [searchParams]);
 
   const favoriteProducts = useMemo(() => {
     const ids = Store.favorites();
@@ -94,6 +104,7 @@ export default function AccountPage() {
         firstName: String(form.get('firstName') || ''),
         lastName: String(form.get('lastName') || ''),
         phone: String(form.get('phone') || ''),
+        email: String(form.get('email') || ''),
       });
       setUser(nextUser);
       setToast({ message: 'Данные сохранены', type: 'success' });
@@ -110,6 +121,22 @@ export default function AccountPage() {
     setOrders([]);
     setActiveTab('login');
     setToast({ message: 'Вы вышли из системы', type: 'info' });
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!window.confirm('Вы уверены, что хотите удалить аккаунт? Это действие необратимо.')) return;
+    setLoading(true);
+    try {
+      await Store.deleteAccount();
+      setUser(null);
+      setOrders([]);
+      setActiveTab('login');
+      setToast({ message: 'Аккаунт удалён', type: 'success' });
+    } catch (err) {
+      setToast({ message: err instanceof Error ? err.message : 'Не удалось удалить аккаунт', type: 'error' });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -142,11 +169,11 @@ export default function AccountPage() {
               <form onSubmit={handleLogin} className="checkout-form" style={{ maxWidth: 400 }}>
                 <div className="form-group">
                   <label>Email</label>
-                  <input type="email" name="email" required />
+                  <input type="email" name="email" defaultValue="" required />
                 </div>
                 <div className="form-group">
                   <label>Пароль</label>
-                  <input type="password" name="password" required />
+                  <input type="password" name="password" defaultValue="" required />
                 </div>
                 <button type="submit" className="btn btn--primary btn--block" disabled={loading}>
                   {loading ? 'Вход...' : 'Войти'}
@@ -158,23 +185,23 @@ export default function AccountPage() {
               <form onSubmit={handleRegister} className="checkout-form" style={{ maxWidth: 400 }}>
                 <div className="form-group">
                   <label>Имя</label>
-                  <input type="text" name="firstName" required />
+                  <input type="text" name="firstName" defaultValue="" required />
                 </div>
                 <div className="form-group">
                   <label>Фамилия</label>
-                  <input type="text" name="lastName" required />
+                  <input type="text" name="lastName" defaultValue="" required />
                 </div>
                 <div className="form-group">
                   <label>Телефон</label>
-                  <input type="tel" name="phone" required />
+                  <input type="tel" name="phone" defaultValue="" required />
                 </div>
                 <div className="form-group">
                   <label>Email</label>
-                  <input type="email" name="email" required />
+                  <input type="email" name="email" defaultValue="" required />
                 </div>
                 <div className="form-group">
                   <label>Пароль</label>
-                  <input type="password" name="password" required minLength={8} />
+                  <input type="password" name="password" defaultValue="" required minLength={8} />
                 </div>
                 <button type="submit" className="btn btn--primary btn--block" disabled={loading}>
                   {loading ? 'Регистрация...' : 'Зарегистрироваться'}
@@ -216,13 +243,16 @@ export default function AccountPage() {
                 </div>
                 <div className="form-group">
                   <label>Email</label>
-                  <input type="email" value={user?.email || ''} readOnly style={{ opacity: 0.6 }} />
+                  <input type="email" name="email" defaultValue={user?.email || ''} required />
                 </div>
                 <button type="submit" className="btn btn--primary btn--block" disabled={loading}>
                   {loading ? 'Сохранение...' : 'Сохранить'}
                 </button>
                 <button type="button" className="btn btn--outline btn--block mt-2" onClick={handleLogout}>
                   Выйти
+                </button>
+                <button type="button" className="btn btn--outline btn--block mt-2" onClick={handleDeleteAccount} disabled={loading} style={{ color: '#dc3545', borderColor: '#dc3545' }}>
+                  Удалить аккаунт
                 </button>
               </form>
             )}
@@ -243,29 +273,94 @@ export default function AccountPage() {
 
             {activeTab === 'orders' && (
               <div>
-                {orders.length > 0 ? (
-                  orders.map((order) => (
-                    <div key={order.id} className="order-card">
-                      <p className="order-card__date">{new Date(order.date).toLocaleString('ru-RU')}</p>
-                      <p>
-                        <strong>{order.firstName} {order.lastName}</strong> · {order.phone}
-                      </p>
-                      <p style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{order.status}</p>
-                      <ul style={{ marginTop: 8, fontSize: 14, color: 'var(--text-secondary)' }}>
-                        {order.items.map((item: any, index: number) => (
-                          <li key={index}>
-                            {item.name}
-                            {item.qty > 1 ? ` x${item.qty}` : ''}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  ))
-                ) : (
-                  <div className="empty-state">
-                    <p>Заказов пока нет</p>
+                {orders.length > 0 && (
+                  <div className="order-filters">
+                    <button type="button" className={`order-filters__btn ${orderFilter === '' ? 'is-active' : ''}`} onClick={() => setOrderFilter('')}>
+                      Все
+                    </button>
+                    <button type="button" className={`order-filters__btn ${orderFilter === 'PENDING' ? 'is-active' : ''}`} onClick={() => setOrderFilter('PENDING')}>
+                      Ожидает
+                    </button>
+                    <button type="button" className={`order-filters__btn ${orderFilter === 'PROCESSING' ? 'is-active' : ''}`} onClick={() => setOrderFilter('PROCESSING')}>
+                      В обработке
+                    </button>
+                    <button type="button" className={`order-filters__btn ${orderFilter === 'SHIPPED' ? 'is-active' : ''}`} onClick={() => setOrderFilter('SHIPPED')}>
+                      В доставке
+                    </button>
+                    <button type="button" className={`order-filters__btn ${orderFilter === 'DELIVERED' ? 'is-active' : ''}`} onClick={() => setOrderFilter('DELIVERED')}>
+                      Доставлены
+                    </button>
+                    <button type="button" className={`order-filters__btn ${orderFilter === 'CANCELLED' ? 'is-active' : ''}`} onClick={() => setOrderFilter('CANCELLED')}>
+                      Отменены
+                    </button>
                   </div>
                 )}
+
+                {(() => {
+                  const filtered = orderFilter ? orders.filter(o => o.status === orderFilter) : orders;
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="empty-state">
+                        <p>{orderFilter ? 'Нет заказов с таким статусом' : 'Заказов пока нет'}</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="orders-list">
+                      {filtered.map((order) => (
+                        <div key={order.id} className="order-card">
+                          <div className="order-card__header">
+                            <div>
+                              <span className="order-card__id">Заказ #{order.id.slice(0, 8)}</span>
+                              <span className="order-card__date">{new Date(order.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                            </div>
+                            <span className={`order-card__status order-card__status--${order.status.toLowerCase()}`}>
+                              {order.status === 'PENDING' && 'Ожидает обработки'}
+                              {order.status === 'PROCESSING' && 'В обработке'}
+                              {order.status === 'SHIPPED' && 'В доставке'}
+                              {order.status === 'DELIVERED' && 'Доставлен'}
+                              {order.status === 'CANCELLED' && 'Отменён'}
+                            </span>
+                          </div>
+
+                          <div className="order-card__items">
+                            {order.items.map((item: any, index: number) => (
+                              <div key={index} className="order-card__item">
+                                <div className="order-card__item-img">
+                                  {item.image ? (
+                                    <img src={item.image} alt={item.name} loading="lazy" />
+                                  ) : (
+                                    <div className="order-card__item-placeholder">Нет фото</div>
+                                  )}
+                                </div>
+                                <div className="order-card__item-info">
+                                  <span className="order-card__item-name">{item.name}</span>
+                                  <span className="order-card__item-details">
+                                    {item.qty > 1 && <span>{item.qty} шт.</span>}
+                                    <span>{item.price.toLocaleString('ru-RU')} &#8381;</span>
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="order-card__footer">
+                            <span className="order-card__total">
+                              Итого: {order.total.toLocaleString('ru-RU')} &#8381;
+                            </span>
+                            {order.deliveryType && (
+                              <span className="order-card__delivery">
+                                {order.deliveryType === 'delivery' ? 'Доставка' : 'Самовывоз'}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </>

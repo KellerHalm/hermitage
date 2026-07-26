@@ -141,6 +141,14 @@ export const updateUser = async (id, data) => {
   if (data.lastName !== undefined) updateData.lastName = data.lastName || null;
   if (data.phone !== undefined) updateData.phone = data.phone || null;
 
+  if (data.email !== undefined && data.email) {
+    const existing = await prisma.user.findUnique({ where: { email: data.email } });
+    if (existing && existing.id !== id) {
+      throw new AppError('Email already in use', 400);
+    }
+    updateData.email = data.email;
+  }
+
   if (data.password) {
     updateData.password = await bcrypt.hash(data.password, 12);
   }
@@ -151,4 +159,9 @@ export const updateUser = async (id, data) => {
   });
 
   return sanitizeUser(user);
+};
+
+export const deleteMe = async (userId) => {
+  await prisma.refreshToken.deleteMany({ where: { userId } });
+  await prisma.user.delete({ where: { id: userId } });
 };

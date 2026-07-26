@@ -12,5 +12,6 @@ router.post('/logout', authController.logout);
 router.get('/verify-admin', protect, authController.verifyAdmin);
 router.get('/me', protect, authController.getMe);
 router.patch('/me', protect, validate(schemas.updateProfile), authController.updateMe);
+router.delete('/me', protect, authController.deleteMe);
 
 export default router;

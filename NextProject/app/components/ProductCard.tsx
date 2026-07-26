@@ -29,27 +29,20 @@ export default function ProductCard({ product }: { product: Product }) {
       : null;
 
   const getAvailabilityInfo = () => {
-    if (product.stockQuantity === 0 || product.inStock === false) {
-      return { text: 'Нет в наличии', className: 'out', showButton: false };
+    const qty = typeof product.stockQuantity === 'number' ? product.stockQuantity : null;
+
+    if (qty !== null && qty > 0) {
+      if (qty <= 5) {
+        return { text: `Осталось ${qty} шт.`, className: 'order', showButton: true, quantity: qty };
+      }
+      return { text: 'В наличии', className: 'in', showButton: true, quantity: qty };
     }
 
     if (product.inStock === 'preorder') {
       return { text: 'Под заказ', className: 'order', showButton: true };
     }
 
-    if (typeof product.stockQuantity === 'number' && product.stockQuantity > 0) {
-      if (product.stockQuantity <= 5) {
-        return {
-          text: `Осталось ${product.stockQuantity} шт.`,
-          className: 'order',
-          showButton: true
-        };
-      }
-
-      return { text: 'В наличии', className: 'in', showButton: true };
-    }
-
-    return { text: 'В наличии', className: 'in', showButton: true };
+    return { text: 'Нет в наличии', className: 'out', showButton: false };
   };
 
   const availability = getAvailabilityInfo();
@@ -84,6 +77,9 @@ export default function ProductCard({ product }: { product: Product }) {
 
         <p className={`product-card__availability ${availability.className}`}>
           {availability.text}
+          {typeof availability.quantity === 'number' && (
+            <span className="product-card__quantity"> · {availability.quantity} шт.</span>
+          )}
         </p>
 
         <p className="product-card__price">

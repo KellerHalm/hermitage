@@ -173,3 +173,28 @@ export const sendWelcomeEmail = async ({ email, firstName }) => {
     console.error('Failed to send welcome email:', err.message);
   }
 };
+
+export const sendNotificationEmail = async ({ to, firstName, title, message }) => {
+  if (!to) return;
+
+  try {
+    await transporter.sendMail({
+      from: FROM,
+      to,
+      subject: `[HERMITAGE] ${escapeHtml(title)}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;">
+          <h2 style="color:#b89a6b;">${escapeHtml(title)}</h2>
+          <p style="font-size:15px;color:#333;">Здравствуйте${escapeHtml(firstName) ? ', ' + escapeHtml(firstName) : ''}!</p>
+          <p style="font-size:15px;color:#333;">${escapeHtml(message)}</p>
+          <hr style="border:none;border-top:1px solid #e5e0d8;margin:24px 0;" />
+          <p style="color:#666;font-size:13px;">Вы можете отслеживать статус ваших заказов в личном кабинете на сайте.</p>
+          <hr style="border:none;border-top:1px solid #e5e0d8;margin:24px 0;" />
+          <p style="color:#999;font-size:12px;text-align:center;">HERMITAGE DECOR — мебель и предметы интерьера премиального качества</p>
+        </div>
+      `,
+    });
+  } catch (err) {
+    console.error('Failed to send notification email:', err.message);
+  }
+};

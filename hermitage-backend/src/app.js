@@ -22,6 +22,7 @@ import cartRoutes from './routes/cartRoutes.js';
 import compareRoutes from './routes/compareRoutes.js';
 import countryRoutes from './routes/countryRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -111,6 +112,7 @@ app.use('/api/compare', compareRoutes);
 app.use('/api/countries', countryRoutes);
 app.use('/api/seo', seoRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 app.get('/health', (req, res) => {
   // Liveness-проверка: процесс жив. НЕ проверяет БД, чтобы зависание БД не

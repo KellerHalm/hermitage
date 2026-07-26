@@ -159,16 +159,23 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
   };
 
   const getAvailabilityText = () => {
+    const qty = typeof product.stockQuantity === 'number' ? product.stockQuantity : null;
+
+    if (qty !== null && qty > 0) {
+      if (qty <= 5) return `Осталось ${qty} шт.`;
+      return 'В наличии';
+    }
+
     if (availabilityState === 'preorder') return 'Под заказ';
-    if (availabilityState === false || product.stockQuantity === 0) return 'Нет в наличии';
-    if (typeof product.stockQuantity === 'number' && product.stockQuantity > 0 && product.stockQuantity <= 5) return `Осталось ${product.stockQuantity} шт.`;
-    return 'В наличии';
+    return 'Нет в наличии';
   };
 
   const getAvailabilityColor = () => {
+    const qty = typeof product.stockQuantity === 'number' ? product.stockQuantity : null;
+
+    if (qty !== null && qty > 0) return '#2e7d32';
     if (availabilityState === 'preorder') return '#e65100';
-    if (availabilityState === false || product.stockQuantity === 0) return '#c62828';
-    return '#2e7d32';
+    return '#c62828';
   };
 
   const handleOrderSubmit = async (e: React.FormEvent) => {
@@ -295,6 +302,9 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
             </p>
             <span style={{ padding: '6px 14px', background: getAvailabilityColor() === '#2e7d32' ? '#e8f5e9' : getAvailabilityColor() === '#e65100' ? '#fff3e0' : '#ffebee', color: getAvailabilityColor(), borderRadius: '20px', fontSize: '13px', fontWeight: 500 }}>
               {getAvailabilityText()}
+              {typeof product.stockQuantity === 'number' && product.stockQuantity > 0 && (
+                <span style={{ fontWeight: 400, opacity: 0.85 }}> · {product.stockQuantity} шт.</span>
+              )}
             </span>
           </div>
 

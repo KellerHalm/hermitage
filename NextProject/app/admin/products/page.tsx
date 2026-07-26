@@ -5,8 +5,8 @@ import { showToast } from '@/lib/toast';
 
 const AVAILABILITY_OPTIONS = [
   { value: 'IN_STOCK', label: 'В наличии' },
-  { value: 'ON_ORDER', label: 'Под заказ' },
   { value: 'OUT_OF_STOCK', label: 'Нет в наличии' },
+  { value: 'ON_ORDER', label: 'Под заказ' },
 ];
 
 export default function ProductsPage() {
@@ -54,6 +54,20 @@ export default function ProductsPage() {
   useEffect(() => {
     void loadData();
   }, []);
+
+  const flatCategories = useMemo(() => {
+    const result: any[] = [];
+    const walk = (list: any[], depth = 0) => {
+      list.forEach((cat) => {
+        result.push({ ...cat, depth });
+        if (Array.isArray(cat.subcategories) && cat.subcategories.length > 0) {
+          walk(cat.subcategories, depth + 1);
+        }
+      });
+    };
+    walk(categories);
+    return result;
+  }, [categories]);
 
   const filteredProducts = useMemo(() => products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase());
@@ -181,7 +195,7 @@ export default function ProductsPage() {
       <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
         <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', minWidth: '200px' }}>
           <option value="">Все категории</option>
-          {categories.map((category) => <option key={category.id} value={String(category.id)}>{category.name}</option>)}
+          {flatCategories.map((category) => <option key={category.id} value={String(category.id)}>{'\u00A0\u00A0'.repeat(category.depth)}{category.depth > 0 ? '\u2514 ' : ''}{category.name}</option>)}
         </select>
         <select value={brandFilter} onChange={(e) => setBrandFilter(e.target.value)} style={{ padding: '10px', border: '1px solid #ddd', borderRadius: '6px', minWidth: '200px' }}>
           <option value="">Все бренды</option>
@@ -230,15 +244,22 @@ export default function ProductsPage() {
             <div className="admin-field"><label>Название</label><input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} /></div>
             <div className="admin-field"><label>Цена</label><input type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} /></div>
             <div className="admin-field"><label>Старая цена (если скидка)</label><input type="number" value={formData.oldPrice} onChange={(e) => setFormData({ ...formData, oldPrice: e.target.value })} placeholder="Оставьте пустым, если нет скидки" /></div>
-            <div className="admin-field"><label>Категория</label><select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}><option value="">Выберите категорию</option>{categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}</select></div>
+            <div className="admin-field"><label>Категория</label><select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })}><option value="">Выберите категорию</option>{flatCategories.map((category) => <option key={category.id} value={category.id}>{'\u00A0\u00A0'.repeat(category.depth)}{category.depth > 0 ? '\u2514 ' : ''}{category.name}</option>)}</select></div>
             <div className="admin-field"><label>Бренд</label><select value={formData.brandId} onChange={(e) => handleBrandChange(e.target.value)}><option value="">Выберите бренд</option>{brands.map((brand) => <option key={brand.id} value={brand.id}>{brand.name}</option>)}</select></div>
             <div className="admin-field"><label>Страна</label><select value={formData.country} onChange={(e) => setFormData({ ...formData, country: e.target.value })}><option value="">Выберите страну</option>{countries.map((c) => <option key={c.id} value={c.name}>{c.name}</option>)}</select></div>
             <div className="admin-field"><label>Артикул</label><input type="text" value={formData.sku} onChange={(e) => setFormData({ ...formData, sku: e.target.value })} /></div>
             <div className="admin-field"><label>Размеры</label><input type="text" value={formData.sizes} onChange={(e) => setFormData({ ...formData, sizes: e.target.value })} /></div>
             <div className="admin-field"><label>Материал</label><input type="text" value={formData.material} onChange={(e) => setFormData({ ...formData, material: e.target.value })} /></div>
             <div className="admin-field"><label>Цвет</label><input type="text" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} /></div>
-            <div className="admin-field"><label>Наличие</label><select value={formData.stockStatus} onChange={(e) => setFormData({ ...formData, stockStatus: e.target.value })}>{AVAILABILITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></div>
-            <div className="admin-field"><label>Количество</label><input type="number" value={formData.stockQuantity} onChange={(e) => setFormData({ ...formData, stockQuantity: e.target.value })} /></div>
+            <div className="admin-field"><label>Наличие</label><select value={formData.stockStatus} onChange={(e) => setFormData({ ...formData, stockStatus: e.target.value })}>{(Number(formData.stockQuantity) > 0 ? AVAILABILITY_OPTIONS : AVAILABILITY_OPTIONS.filter(o => o.value !== 'IN_STOCK')).map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></div>
+            <div className="admin-field"><label>Количество</label><input type="number" min="0" value={formData.stockQuantity} onChange={(e) => {
+              const qty = e.target.value;
+              const num = qty === '' ? null : Number(qty);
+              let status = formData.stockStatus;
+              if (num !== null && num <= 0 && status === 'IN_STOCK') status = 'OUT_OF_STOCK';
+              if (num !== null && num > 0 && status === 'OUT_OF_STOCK') status = 'IN_STOCK';
+              setFormData({ ...formData, stockQuantity: qty, stockStatus: status });
+            }} /></div>
             <div className="admin-field"><label>Описание</label><textarea rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
             <div className="admin-field"><label>Изображения</label><input type="file" accept="image/*" multiple onChange={(e) => setFormData({ ...formData, files: Array.from(e.target.files || []) })} /></div>
             <div className="admin-field">

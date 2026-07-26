@@ -56,25 +56,30 @@ const collectCategoryIds = async (categoryId) => {
   return ids;
 };
 
-const buildProductPayload = (data) => ({
-  title: data.title,
-  slug: generateSlug(data.title),
-  description: data.description || '',
-  price: Number.parseFloat(data.price),
-  oldPrice: data.oldPrice ? Number.parseFloat(data.oldPrice) : null,
-  sku: data.sku || null,
-  sizes: data.sizes || null,
-  stockStatus: data.stockStatus || 'IN_STOCK',
-  stockQuantity: parseInteger(data.stockQuantity),
-  country: data.country || null,
-  material: data.material || null,
-  color: data.color || null,
-  popular: parseBoolean(data.popular),
-  isNew: parseBoolean(data.isNew),
-  isSale: parseBoolean(data.isSale),
-  categoryId: data.categoryId,
-  brandId: data.brandId || null,
-});
+const buildProductPayload = (data) => {
+  const stockQty = parseInteger(data.stockQuantity);
+  const stockStatus = data.stockStatus || 'IN_STOCK';
+
+  return {
+    title: data.title,
+    slug: generateSlug(data.title),
+    description: data.description || '',
+    price: Number.parseFloat(data.price),
+    oldPrice: data.oldPrice ? Number.parseFloat(data.oldPrice) : null,
+    sku: data.sku || null,
+    sizes: data.sizes || null,
+    stockStatus,
+    stockQuantity: stockQty,
+    country: data.country || null,
+    material: data.material || null,
+    color: data.color || null,
+    popular: parseBoolean(data.popular),
+    isNew: parseBoolean(data.isNew),
+    isSale: parseBoolean(data.isSale),
+    categoryId: data.categoryId,
+    brandId: data.brandId || null,
+  };
+};
 
 const productInclude = {
   images: true,
@@ -260,7 +265,9 @@ export const updateProduct = async (id, data, files) => {
   if (data.sku !== undefined) updateData.sku = data.sku || null;
   if (data.sizes !== undefined) updateData.sizes = data.sizes || null;
   if (data.stockStatus !== undefined) updateData.stockStatus = data.stockStatus;
-  if (data.stockQuantity !== undefined) updateData.stockQuantity = parseInteger(data.stockQuantity);
+  if (data.stockQuantity !== undefined) {
+    updateData.stockQuantity = parseInteger(data.stockQuantity);
+  }
   if (data.country !== undefined) updateData.country = data.country || null;
   if (data.material !== undefined) updateData.material = data.material || null;
   if (data.color !== undefined) updateData.color = data.color || null;

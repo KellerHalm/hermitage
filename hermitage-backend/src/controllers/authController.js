@@ -78,3 +78,12 @@ export const updateMe = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteMe = async (req, res, next) => {
+  try {
+    await authService.deleteMe(req.user.id);
+    res.status(200).json({ status: 'success' });
+  } catch (error) {
+    next(error);
+  }
+};
