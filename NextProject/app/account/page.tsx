@@ -327,7 +327,12 @@ export default function AccountPage() {
 
                           <div className="order-card__items">
                             {order.items.map((item: any, index: number) => (
-                              <div key={index} className="order-card__item">
+                              <Link
+                                key={index}
+                                href={item.slug ? `/product/${item.slug}` : '#'}
+                                className="order-card__item"
+                                style={{ textDecoration: 'none', color: 'inherit' }}
+                              >
                                 <div className="order-card__item-img">
                                   {item.image ? (
                                     <img src={item.image} alt={item.name} loading="lazy" />
@@ -342,7 +347,7 @@ export default function AccountPage() {
                                     <span>{item.price.toLocaleString('ru-RU')} &#8381;</span>
                                   </span>
                                 </div>
-                              </div>
+                              </Link>
                             ))}
                           </div>
 

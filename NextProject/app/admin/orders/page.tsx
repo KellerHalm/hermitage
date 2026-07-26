@@ -49,7 +49,10 @@ export default function OrdersPage() {
   const filteredOrders = useMemo(() => orders.filter((order) => {
     const matchesStatus = filterStatus === 'all' ? true : order.status === filterStatus;
     const text = search.toLowerCase();
-    const matchesSearch = `${order.firstName} ${order.lastName}`.toLowerCase().includes(text) || String(order.phone || '').toLowerCase().includes(text);
+    const matchesSearch = !text || `${order.firstName} ${order.lastName}`.toLowerCase().includes(text)
+      || String(order.phone || '').toLowerCase().includes(text)
+      || String(order.email || '').toLowerCase().includes(text)
+      || String(order.id || '').toLowerCase().includes(text);
     return matchesStatus && matchesSearch;
   }), [orders, filterStatus, search]);
 
@@ -68,7 +71,7 @@ export default function OrdersPage() {
         <h1 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: '32px', margin: 0 }}>Заказы ({orders.length})</h1>
       </div>
 
-      <input type="text" placeholder="Поиск по имени или телефону..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '16px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px' }} />
+      <input type="text" placeholder="Поиск по имени, телефону, email или номеру заказа..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '12px', marginBottom: '16px', border: '1px solid #ddd', borderRadius: '8px', fontSize: '14px' }} />
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '24px' }}>
         <button onClick={() => setFilterStatus('all')} style={{ padding: '8px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer', background: filterStatus === 'all' ? '#111' : '#eee', color: filterStatus === 'all' ? '#fff' : '#111' }}>Все</button>

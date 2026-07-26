@@ -118,9 +118,15 @@ export default function CategoriesPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #eee' }}>
-              <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Название</th>
-              <th style={{ padding: '16px', textAlign: 'center', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Товаров</th>
-              <th style={{ padding: '16px', textAlign: 'right', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Действия</th>
+              <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>
+                Название
+              </th>
+              <th className="text-center" style={{ padding: '16px', textAlign: 'center', fontSize: '12px', color: '#666', textTransform: 'uppercase', width: '20%' }}>
+                Товаров
+              </th>
+              <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase', whiteSpace: 'nowrap', width: '1%' }}>
+                Действия
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -130,8 +136,10 @@ export default function CategoriesPage() {
                   {category.level > 0 && <span style={{ color: '#999', marginRight: 6 }}>&#8627;</span>}
                   {category.name}
                 </td>
-                <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>{productsCount[category.id] || 0}</td>
-                <td style={{ padding: '16px', textAlign: 'right' }}>
+                <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>
+                  {productsCount[category.id] || 0}
+                </td>
+                <td style={{ padding: '16px', textAlign: 'left', whiteSpace: 'nowrap' }}>
                   <button onClick={() => { setEditingCategory(category); setFormData({ name: category.name, parentId: category.parentId || '' }); setImageFile(null); setImagePreview(category.image || null); setShowModal(true); }} style={{ padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginRight: '8px' }}>Редактировать</button>
                   <button onClick={() => void handleDelete(category.id)} style={{ padding: '6px 12px', background: '#ffebee', color: '#c62828', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Удалить</button>
                 </td>

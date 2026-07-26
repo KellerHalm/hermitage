@@ -87,7 +87,7 @@ export default function CountriesPage() {
             <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #eee' }}>
               <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Название</th>
               <th style={{ padding: '16px', textAlign: 'center', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Изображение</th>
-              <th style={{ padding: '16px', textAlign: 'right', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Действия</th>
+              <th style={{ padding: '16px', textAlign: 'right', fontSize: '12px', color: '#666', textTransform: 'uppercase', whiteSpace: 'nowrap', width: '1%' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -101,7 +101,7 @@ export default function CountriesPage() {
                     <span style={{ color: '#999', fontSize: '12px' }}>Нет</span>
                   )}
                 </td>
-                <td style={{ padding: '16px', textAlign: 'right' }}>
+                <td style={{ padding: '16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <button onClick={() => { setEditingCountry(country); setFormData({ name: country.name }); setImageFile(null); setImagePreview(country.image || null); setShowModal(true); }} style={{ padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginRight: '8px' }}>Редактировать</button>
                   <button onClick={() => void handleDelete(country.id)} style={{ padding: '6px 12px', background: '#ffebee', color: '#c62828', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Удалить</button>
                 </td>

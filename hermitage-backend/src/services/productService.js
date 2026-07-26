@@ -280,6 +280,16 @@ export const updateProduct = async (id, data, files) => {
   const characteristicsData = data.characteristics ? JSON.parse(data.characteristics) : null;
   const imagesData = buildImagesData(files);
 
+  let deleteImageIds = null;
+  if (data.deleteImageIds) {
+    try {
+      const parsed = JSON.parse(data.deleteImageIds);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        deleteImageIds = parsed;
+      }
+    } catch { /* ignore invalid JSON */ }
+  }
+
   await prisma.product.update({
     where: { id },
     data: {
@@ -292,10 +302,16 @@ export const updateProduct = async (id, data, files) => {
             },
           }
         : {}),
+      ...(deleteImageIds
+        ? {
+            images: {
+              deleteMany: { id: { in: deleteImageIds } },
+            },
+          }
+        : {}),
       ...(imagesData.length > 0
         ? {
             images: {
-              deleteMany: {},
               create: imagesData,
             },
           }

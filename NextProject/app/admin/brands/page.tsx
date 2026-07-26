@@ -66,7 +66,7 @@ export default function BrandsPage() {
             <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #eee' }}>
               <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Название</th>
               <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Страна</th>
-              <th style={{ padding: '16px', textAlign: 'right', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Действия</th>
+              <th style={{ padding: '16px', textAlign: 'right', fontSize: '12px', color: '#666', textTransform: 'uppercase', whiteSpace: 'nowrap', width: '1%' }}>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -74,7 +74,7 @@ export default function BrandsPage() {
               <tr key={brand.id} style={{ borderBottom: '1px solid #eee' }}>
                 <td style={{ padding: '16px', fontSize: '14px', fontWeight: 500 }}>{brand.name}</td>
                 <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>{brand.country || '—'}</td>
-                <td style={{ padding: '16px', textAlign: 'right' }}>
+                <td style={{ padding: '16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                   <button onClick={() => { setEditingBrand(brand); setFormData({ name: brand.name, country: brand.country || '' }); setShowModal(true); }} style={{ padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginRight: '8px' }}>Редактировать</button>
                   <button onClick={() => void handleDelete(String(brand.id))} style={{ padding: '6px 12px', background: '#ffebee', color: '#c62828', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Удалить</button>
                 </td>

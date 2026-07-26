@@ -1986,6 +1986,12 @@ border-spacing: 0;
   align-items: center;
   gap: 14px;
   padding: 10px 0;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.order-card__item:hover {
+  opacity: 0.7;
 }
 
 .order-card__item + .order-card__item {
@@ -3471,6 +3477,15 @@ height: 110px;
   font-weight: 600 !important;
 }
 
+/* Точечные переопределения выравнивания для конкретных заголовков (сильнее .admin-content th) */
+.admin-content th.text-center {
+  text-align: center !important;
+}
+
+.admin-content th.text-right {
+  text-align: right !important;
+}
+
 .admin-content td {
   padding: 16px 20px !important;
   border-bottom: 1px solid #f5f5f5 !important;
@@ -3801,4 +3816,130 @@ height: 110px;
 @keyframes slideIn {
   from { transform: translateX(100%); opacity: 0; }
   to { transform: translateX(0); opacity: 1; }
+}
+
+/* Lightbox */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5000;
+  animation: lightboxFadeIn 0.2s ease;
+}
+
+@keyframes lightboxFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 28px;
+  cursor: pointer;
+  z-index: 5002;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.lightbox-close:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.lightbox-content {
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-content img {
+  max-width: 100%;
+  max-height: 85vh;
+  object-fit: contain;
+  border-radius: 4px;
+  user-select: none;
+}
+
+.lightbox-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: #fff;
+  font-size: 36px;
+  cursor: pointer;
+  z-index: 5002;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+  line-height: 1;
+}
+
+.lightbox-arrow:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.lightbox-arrow--left {
+  left: 20px;
+}
+
+.lightbox-arrow--right {
+  right: 20px;
+}
+
+.lightbox-counter {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+@media (max-width: 768px) {
+  .lightbox-arrow {
+    width: 40px;
+    height: 40px;
+    font-size: 28px;
+  }
+
+  .lightbox-arrow--left {
+    left: 10px;
+  }
+
+  .lightbox-arrow--right {
+    right: 10px;
+  }
+
+  .lightbox-close {
+    top: 12px;
+    right: 12px;
+  }
+
+  .lightbox-content img {
+    max-height: 80vh;
+  }
 }

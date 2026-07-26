@@ -97,6 +97,8 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [showLightbox, setShowLightbox] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const thumbsRef = useRef<HTMLDivElement>(null);
@@ -122,6 +124,21 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
     window.addEventListener('storage', handler);
     return () => window.removeEventListener('storage', handler);
   }, []);
+
+  useEffect(() => {
+    if (!showLightbox) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowLightbox(false);
+      if (e.key === 'ArrowLeft') setLightboxIndex((prev) => prev === 0 ? (product?.images?.length || 1) - 1 : prev - 1);
+      if (e.key === 'ArrowRight') setLightboxIndex((prev) => prev === (product?.images?.length || 1) - 1 ? 0 : prev + 1);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [showLightbox, product?.images?.length]);
 
   if (!loaded || productLoading) return null;
 
@@ -261,11 +278,11 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
 
       <div className="product-layout container" style={{ paddingTop: 0, paddingBottom: 32 }}>
         <div className="product-gallery">
-          <div className="product-gallery__main">
+          <div className="product-gallery__main" onClick={() => { setLightboxIndex(activeImage); setShowLightbox(true); }} style={{ cursor: 'zoom-in' }}>
             {product.images && product.images.length > 1 && (
               <>
-                <button type="button" className="gallery-main-arrow gallery-main-arrow--left" onClick={() => setActiveImage((prev) => prev === 0 ? product.images.length - 1 : prev - 1)}>‹</button>
-                <button type="button" className="gallery-main-arrow gallery-main-arrow--right" onClick={() => setActiveImage((prev) => prev === product.images.length - 1 ? 0 : prev + 1)}>›</button>
+                <button type="button" className="gallery-main-arrow gallery-main-arrow--left" onClick={(e) => { e.stopPropagation(); setActiveImage((prev) => prev === 0 ? product.images.length - 1 : prev - 1); }}>‹</button>
+                <button type="button" className="gallery-main-arrow gallery-main-arrow--right" onClick={(e) => { e.stopPropagation(); setActiveImage((prev) => prev === product.images.length - 1 ? 0 : prev + 1); }}>›</button>
               </>
             )}
             <img src={product.images?.[activeImage] || product.image} alt={product.name} />
@@ -451,6 +468,24 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {showLightbox && product?.images && (
+        <div className="lightbox-overlay" onClick={() => setShowLightbox(false)}>
+          <button type="button" className="lightbox-close" onClick={() => setShowLightbox(false)}>✕</button>
+          {product.images.length > 1 && (
+            <>
+              <button type="button" className="lightbox-arrow lightbox-arrow--left" onClick={(e) => { e.stopPropagation(); setLightboxIndex((prev) => prev === 0 ? product.images.length - 1 : prev - 1); }}>‹</button>
+              <button type="button" className="lightbox-arrow lightbox-arrow--right" onClick={(e) => { e.stopPropagation(); setLightboxIndex((prev) => prev === product.images.length - 1 ? 0 : prev + 1); }}>›</button>
+            </>
+          )}
+          <div className="lightbox-content" onClick={(e) => e.stopPropagation()}>
+            <img src={product.images[lightboxIndex]} alt={product.name} />
+          </div>
+          {product.images.length > 1 && (
+            <div className="lightbox-counter">{lightboxIndex + 1} / {product.images.length}</div>
+          )}
         </div>
       )}
 

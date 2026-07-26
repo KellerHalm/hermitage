@@ -39,6 +39,8 @@ export default function ProductsPage() {
     color: '',
     files: [] as File[],
     characteristics: [] as Array<{ name: string; value: string }>,
+    existingImages: [] as Array<{ id: string; url: string }>,
+    deleteImageIds: [] as string[],
   });
 
   const loadData = async () => {
@@ -95,6 +97,8 @@ export default function ProductsPage() {
     color: '',
     files: [],
     characteristics: [],
+    existingImages: [],
+    deleteImageIds: [],
   });
 
   const openCreate = () => {
@@ -105,6 +109,7 @@ export default function ProductsPage() {
 
   const openEdit = (product: any) => {
     setEditingProduct(product);
+    const rawImages = Array.isArray(product.rawImages) ? product.rawImages : [];
     setFormData({
       name: product.name,
       price: String(product.price),
@@ -124,6 +129,8 @@ export default function ProductsPage() {
       color: product.color || '',
       files: [],
       characteristics: Array.isArray(product.characteristics) ? product.characteristics.map((c: any) => ({ name: c.name || '', value: c.value || '' })) : [],
+      existingImages: rawImages,
+      deleteImageIds: [],
     });
     setShowModal(true);
   };
@@ -214,7 +221,7 @@ export default function ProductsPage() {
                 <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Бренд</th>
                 <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Цена</th>
                 <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Наличие</th>
-                <th style={{ padding: '16px', textAlign: 'right', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Действия</th>
+                <th style={{ padding: '16px', textAlign: 'right', fontSize: '12px', color: '#666', textTransform: 'uppercase', whiteSpace: 'nowrap', width: '1%' }}>Действия</th>
               </tr>
             </thead>
             <tbody>
@@ -225,7 +232,7 @@ export default function ProductsPage() {
                   <td style={{ padding: '16px', fontSize: '14px', color: '#666' }}>{product.factory || '—'}</td>
                    <td style={{ padding: '16px', fontSize: '14px', fontWeight: 500 }}>{Number(product.price).toLocaleString('ru-RU')} &#8381;</td>
                   <td style={{ padding: '16px', fontSize: '14px' }}>{product.inStock === 'preorder' ? 'Под заказ' : product.inStock === false ? 'Нет в наличии' : 'В наличии'}</td>
-                  <td style={{ padding: '16px', textAlign: 'right' }}>
+                  <td style={{ padding: '16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button onClick={() => openEdit(product)} style={{ padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginRight: '8px' }}>Редактировать</button>
                     <button onClick={() => void handleDelete(String(product.id))} style={{ padding: '6px 12px', background: '#ffebee', color: '#c62828', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Удалить</button>
                   </td>
@@ -261,7 +268,31 @@ export default function ProductsPage() {
               setFormData({ ...formData, stockQuantity: qty, stockStatus: status });
             }} /></div>
             <div className="admin-field"><label>Описание</label><textarea rows={3} value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} /></div>
-            <div className="admin-field"><label>Изображения</label><input type="file" accept="image/*" multiple onChange={(e) => setFormData({ ...formData, files: Array.from(e.target.files || []) })} /></div>
+            {editingProduct && formData.existingImages.length > 0 && (
+              <div className="admin-field">
+                <label>Текущие изображения</label>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                  {formData.existingImages.map((img: { id: string; url: string }) => (
+                    <div key={img.id} style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '4px', overflow: 'hidden', border: '1px solid #ddd' }}>
+                      <img src={img.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const removed = formData.existingImages.find((i: any) => i.id === img.id);
+                          setFormData({
+                            ...formData,
+                            existingImages: formData.existingImages.filter((i: any) => i.id !== img.id),
+                            deleteImageIds: [...formData.deleteImageIds, img.id],
+                          });
+                        }}
+                        style={{ position: 'absolute', top: 2, right: 2, width: '20px', height: '20px', borderRadius: '50%', background: 'rgba(0,0,0,0.6)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: '12px', lineHeight: '20px', textAlign: 'center', padding: 0 }}
+                      >&times;</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="admin-field"><label>Новые изображения</label><input type="file" accept="image/*" multiple onChange={(e) => setFormData({ ...formData, files: Array.from(e.target.files || []) })} /></div>
             <div className="admin-field">
               <label>Характеристики</label>
               {formData.characteristics.map((ch: any, idx: number) => (

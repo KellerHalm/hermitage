@@ -106,9 +106,10 @@ const toStockValue = (value: string) => {
 };
 
 const normalizeProduct = (product: any) => {
-  const images = Array.isArray(product?.images)
-    ? product.images.map((image: any) => buildAssetUrl(image?.url)).filter(Boolean)
+  const rawImages: Array<{ id: string; url: string }> = Array.isArray(product?.images)
+    ? product.images.map((image: any) => ({ id: String(image?.id || ''), url: buildAssetUrl(image?.url) })).filter((img: any) => img.url)
     : [];
+  const images = rawImages.map((img) => img.url);
   const categoryId = product?.category?.id || product?.categoryId || product?.category || '';
   const brandName = product?.brand?.name || product?.factory || product?.brandName || product?.brand || '';
   const country = product?.country || product?.brand?.country || '';
@@ -141,6 +142,7 @@ const normalizeProduct = (product: any) => {
     oldPrice: product?.oldPrice ? toNumber(product?.oldPrice) : null,
     image: images[0] || buildAssetUrl(product?.image),
     images: images.length > 0 ? images : [buildAssetUrl(product?.image)],
+    rawImages,
     description: product?.description || '',
     characteristics,
   };
@@ -166,7 +168,7 @@ const normalizeCountry = (country: any) => ({
   id: String(country?.id || ''),
   name: country?.name || '',
   slug: country?.slug || '',
-  image: country?.image || '',
+  image: buildAssetUrl(country?.image),
 });
 
 const normalizeOrder = (order: any): Order => ({
@@ -323,6 +325,9 @@ const buildProductFormData = (product: Record<string, any>) => {
   formData.append('characteristics', JSON.stringify(Array.isArray(product.characteristics) ? product.characteristics : []));
   if (Array.isArray(product.files)) {
     product.files.forEach((file: File) => formData.append('images', file));
+  }
+  if (Array.isArray(product.deleteImageIds) && product.deleteImageIds.length > 0) {
+    formData.append('deleteImageIds', JSON.stringify(product.deleteImageIds));
   }
   return formData;
 };
