@@ -5,3 +5,7 @@ node_modules
 *.log
 
 /src/generated/prisma
+
+/uploads/products/
+/uploads/categories/
+/uploads/countries/
