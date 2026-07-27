@@ -12,8 +12,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // nonce не задаём вручную: Next.js извлекает его из CSP-заголовка запроса
-  // (см. proxy.ts) и автоматически применяет к фреймворк-скриптам.
+  // CSP заголовки задаются в nginx.conf.
   return (
     <html lang="ru">
       <head>
