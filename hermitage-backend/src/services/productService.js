@@ -96,7 +96,14 @@ export const createProduct = async (data, files) => {
     throw new AppError('Product with this title already exists', 400);
   }
 
-  const characteristicsData = data.characteristics ? JSON.parse(data.characteristics) : [];
+  let characteristicsData = [];
+  if (data.characteristics) {
+    try {
+      characteristicsData = JSON.parse(data.characteristics);
+    } catch {
+      throw new AppError('Invalid characteristics JSON', 400);
+    }
+  }
   const imagesData = buildImagesData(files);
 
   return prisma.product.create({
@@ -277,7 +284,14 @@ export const updateProduct = async (id, data, files) => {
   if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
   if (data.brandId !== undefined) updateData.brandId = data.brandId || null;
 
-  const characteristicsData = data.characteristics ? JSON.parse(data.characteristics) : null;
+  let characteristicsData = null;
+  if (data.characteristics) {
+    try {
+      characteristicsData = JSON.parse(data.characteristics);
+    } catch {
+      throw new AppError('Invalid characteristics JSON', 400);
+    }
+  }
   const imagesData = buildImagesData(files);
 
   let deleteImageIds = null;
