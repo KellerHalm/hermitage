@@ -59,6 +59,8 @@ app.use(
 
 if (config.nodeEnv === 'development') {
   app.use(morgan('dev'));
+} else {
+  app.use(morgan('combined'));
 }
 
 const limiter = rateLimit({
