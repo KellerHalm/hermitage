@@ -18,10 +18,6 @@ const buildHeaders = (options: RequestOptions) => {
     headers.set('Content-Type', 'application/json');
   }
 
-  if (options.token) {
-    headers.set('Authorization', `Bearer ${options.token}`);
-  }
-
   if (options.guestId) {
     headers.set('X-Guest-Id', options.guestId);
   }
@@ -30,13 +26,10 @@ const buildHeaders = (options: RequestOptions) => {
 };
 
 let isRefreshing = false;
-let refreshPromise: Promise<string> | null = null;
+let refreshPromise: Promise<void> | null = null;
 
-const attemptRefresh = async (): Promise<string> => {
+const attemptRefresh = async (): Promise<void> => {
   if (typeof window === 'undefined') throw new Error('No refresh available');
-
-  const refreshToken = localStorage.getItem('hd_refresh_token');
-  if (!refreshToken) throw new Error('No refresh token');
 
   if (isRefreshing && refreshPromise) {
     return refreshPromise;
@@ -48,23 +41,13 @@ const attemptRefresh = async (): Promise<string> => {
       const response = await fetch(`${API_BASE}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ refreshToken }),
+        credentials: 'include',
+        body: JSON.stringify({}),
       });
 
       if (!response.ok) {
-        localStorage.removeItem('hd_token');
-        localStorage.removeItem('hd_refresh_token');
         throw new Error('Refresh failed');
       }
-
-      const data = await response.json();
-      const newToken = data.token as string;
-      const newRefreshToken = data.refreshToken as string;
-
-      localStorage.setItem('hd_token', newToken);
-      localStorage.setItem('hd_refresh_token', newRefreshToken);
-
-      return newToken;
     } finally {
       isRefreshing = false;
       refreshPromise = null;
@@ -80,16 +63,15 @@ async function request<T>(path: string, options: RequestOptions = {}, retryOn401
     headers: buildHeaders(options),
     body: options.body,
     cache: 'no-store',
+    credentials: 'include',
   });
 
-  if (response.status === 401 && retryOn401 && options.token) {
+  if (response.status === 401 && retryOn401) {
     try {
-      const newToken = await attemptRefresh();
-      return request<T>(path, { ...options, token: newToken }, false);
+      await attemptRefresh();
+      return request<T>(path, options, false);
     } catch {
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('hd_token');
-        localStorage.removeItem('hd_refresh_token');
         window.dispatchEvent(new Event('auth:logout'));
       }
     }
@@ -167,51 +149,51 @@ export const api = {
   search: (q: string) => request<any>(`/search?q=${encodeURIComponent(q)}`),
   login: (payload: { email: string; password: string }) => request<any>('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
   register: (payload: { email: string; password: string; firstName: string; lastName: string; phone: string }) => request<any>('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
-  refresh: (refreshToken: string) => request<any>('/auth/refresh', { method: 'POST', body: JSON.stringify({ refreshToken }) }, false),
-  logout: (refreshToken: string) => request<any>('/auth/logout', { method: 'POST', body: JSON.stringify({ refreshToken }) }, false),
-  verifyAdmin: (token: string) => request<any>('/auth/verify-admin', { token }),
-  getMe: (token: string) => request<any>('/auth/me', { token }),
-  updateMe: (token: string, payload: Record<string, unknown>) => request<any>('/auth/me', { method: 'PATCH', token, body: JSON.stringify(payload) }),
-  deleteMe: (token: string) => request<any>('/auth/me', { method: 'DELETE', token }),
-  getFavorites: (token: string) => request<any>('/favorites', { token }),
-  addFavorite: (token: string, productId: string) => request<any>('/favorites', { method: 'POST', token, body: JSON.stringify({ productId }) }),
-  removeFavorite: (token: string, productId: string) => request<any>(`/favorites/${productId}`, { method: 'DELETE', token }),
-  getCompare: (token: string) => request<any>('/compare', { token }),
-  addCompare: (token: string, productId: string) => request<any>('/compare', { method: 'POST', token, body: JSON.stringify({ productId }) }),
-  removeCompare: (token: string, productId: string) => request<any>(`/compare/${productId}`, { method: 'DELETE', token }),
-  syncCompare: (token: string, productIds: string[]) => request<any>('/compare/sync', { method: 'POST', token, body: JSON.stringify({ productIds }) }),
+  refresh: () => request<any>('/auth/refresh', { method: 'POST', body: JSON.stringify({}) }, false),
+  logout: () => request<any>('/auth/logout', { method: 'POST', body: JSON.stringify({}) }, false),
+  verifyAdmin: () => request<any>('/auth/verify-admin'),
+  getMe: () => request<any>('/auth/me'),
+  updateMe: (token: string, payload: Record<string, unknown>) => request<any>('/auth/me', { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteMe: () => request<any>('/auth/me', { method: 'DELETE' }),
+  getFavorites: () => request<any>('/favorites'),
+  addFavorite: (productId: string) => request<any>('/favorites', { method: 'POST', body: JSON.stringify({ productId }) }),
+  removeFavorite: (productId: string) => request<any>(`/favorites/${productId}`, { method: 'DELETE' }),
+  getCompare: () => request<any>('/compare'),
+  addCompare: (productId: string) => request<any>('/compare', { method: 'POST', body: JSON.stringify({ productId }) }),
+  removeCompare: (productId: string) => request<any>(`/compare/${productId}`, { method: 'DELETE' }),
+  syncCompare: (token: string, productIds: string[]) => request<any>('/compare/sync', { method: 'POST', body: JSON.stringify({ productIds }) }),
   getCart: (auth: { token?: string | null; guestId?: string | null }) => request<any>('/cart', withAuth(auth.token, auth.guestId)),
   addCartItem: (auth: { token?: string | null; guestId?: string | null }, productId: string, quantity = 1) => request<any>('/cart/items', { method: 'POST', ...withAuth(auth.token, auth.guestId), body: JSON.stringify({ productId, quantity }) }),
   updateCartItem: (auth: { token?: string | null; guestId?: string | null }, productId: string, quantity: number) => request<any>(`/cart/items/${productId}`, { method: 'PATCH', ...withAuth(auth.token, auth.guestId), body: JSON.stringify({ quantity }) }),
   removeCartItem: (auth: { token?: string | null; guestId?: string | null }, productId: string) => request<any>(`/cart/items/${productId}`, { method: 'DELETE', ...withAuth(auth.token, auth.guestId) }),
   clearCart: (auth: { token?: string | null; guestId?: string | null }) => request<any>('/cart', { method: 'DELETE', ...withAuth(auth.token, auth.guestId) }),
-  mergeGuestCart: (token: string, guestId: string) => request<any>('/cart/merge', { method: 'POST', token, body: JSON.stringify({ guestId }) }),
-  getMyOrders: (token: string) => request<any>('/orders/my-orders', { token }),
-  createOrder: (token: string, payload: Record<string, unknown>) => request<any>('/orders', { method: 'POST', token, body: JSON.stringify(payload) }),
-  getAdminOrders: (token: string) => request<any>('/orders?limit=200', { token }),
-  updateOrderStatus: (token: string, id: string, status: string) => request<any>(`/orders/${id}/status`, { method: 'PATCH', token, body: JSON.stringify({ status }) }),
-  createCategory: (token: string, payload: FormData) => request<any>('/categories', { method: 'POST', token, body: payload }),
-  updateCategory: (token: string, id: string, payload: FormData) => request<any>(`/categories/${id}`, { method: 'PATCH', token, body: payload }),
-  deleteCategory: (token: string, id: string) => request<any>(`/categories/${id}`, { method: 'DELETE', token }),
-  createCountry: (token: string, payload: FormData) => request<any>('/countries', { method: 'POST', token, body: payload }),
-  updateCountry: (token: string, id: string, payload: FormData) => request<any>(`/countries/${id}`, { method: 'PATCH', token, body: payload }),
-  deleteCountry: (token: string, id: string) => request<any>(`/countries/${id}`, { method: 'DELETE', token }),
-  createBrand: (token: string, payload: Record<string, unknown>) => request<any>('/brands', { method: 'POST', token, body: JSON.stringify(payload) }),
-  updateBrand: (token: string, id: string, payload: Record<string, unknown>) => request<any>(`/brands/${id}`, { method: 'PATCH', token, body: JSON.stringify(payload) }),
-  deleteBrand: (token: string, id: string) => request<any>(`/brands/${id}`, { method: 'DELETE', token }),
-  createProduct: (token: string, payload: FormData) => request<any>('/products', { method: 'POST', token, body: payload }),
-  updateProduct: (token: string, id: string, payload: FormData) => request<any>(`/products/${id}`, { method: 'PATCH', token, body: payload }),
-  deleteProduct: (token: string, id: string) => request<any>(`/products/${id}`, { method: 'DELETE', token }),
+  mergeGuestCart: (token: string, guestId: string) => request<any>('/cart/merge', { method: 'POST', body: JSON.stringify({ guestId }) }),
+  getMyOrders: () => request<any>('/orders/my-orders'),
+  createOrder: (token: string, payload: Record<string, unknown>) => request<any>('/orders', { method: 'POST', body: JSON.stringify(payload) }),
+  getAdminOrders: () => request<any>('/orders?limit=200'),
+  updateOrderStatus: (id: string, status: string) => request<any>(`/orders/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  createCategory: (token: string, payload: FormData) => request<any>('/categories', { method: 'POST', body: payload }),
+  updateCategory: (token: string, id: string, payload: FormData) => request<any>(`/categories/${id}`, { method: 'PATCH', body: payload }),
+  deleteCategory: (id: string) => request<any>(`/categories/${id}`, { method: 'DELETE' }),
+  createCountry: (token: string, payload: FormData) => request<any>('/countries', { method: 'POST', body: payload }),
+  updateCountry: (token: string, id: string, payload: FormData) => request<any>(`/countries/${id}`, { method: 'PATCH', body: payload }),
+  deleteCountry: (id: string) => request<any>(`/countries/${id}`, { method: 'DELETE' }),
+  createBrand: (token: string, payload: Record<string, unknown>) => request<any>('/brands', { method: 'POST', body: JSON.stringify(payload) }),
+  updateBrand: (token: string, id: string, payload: Record<string, unknown>) => request<any>(`/brands/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteBrand: (id: string) => request<any>(`/brands/${id}`, { method: 'DELETE' }),
+  createProduct: (token: string, payload: FormData) => request<any>('/products', { method: 'POST', body: payload }),
+  updateProduct: (token: string, id: string, payload: FormData) => request<any>(`/products/${id}`, { method: 'PATCH', body: payload }),
+  deleteProduct: (id: string) => request<any>(`/products/${id}`, { method: 'DELETE' }),
   getUsers: (token: string, params?: Record<string, string>) => {
     const qs = params ? '?' + new URLSearchParams(params).toString() : '';
-    return request<any>(`/users${qs}`, { token });
+    return request<any>(`/users${qs}`);
   },
-  getUserById: (token: string, id: string) => request<any>(`/users/${id}`, { token }),
-  createUser: (token: string, payload: Record<string, unknown>) => request<any>('/users', { method: 'POST', token, body: JSON.stringify(payload) }),
-  updateUser: (token: string, id: string, payload: Record<string, unknown>) => request<any>(`/users/${id}`, { method: 'PATCH', token, body: JSON.stringify(payload) }),
-  deleteUser: (token: string, id: string) => request<any>(`/users/${id}`, { method: 'DELETE', token }),
-  getNotifications: (token: string) => request<any>('/notifications', { token }),
-  getNotificationUnreadCount: (token: string) => request<any>('/notifications/unread-count', { token }),
-  markNotificationAsRead: (token: string, id: string) => request<any>(`/notifications/${id}/read`, { method: 'PATCH', token }),
-  markAllNotificationsAsRead: (token: string) => request<any>('/notifications/read-all', { method: 'PATCH', token }),
+  getUserById: (token: string, id: string) => request<any>(`/users/${id}`),
+  createUser: (token: string, payload: Record<string, unknown>) => request<any>('/users', { method: 'POST', body: JSON.stringify(payload) }),
+  updateUser: (token: string, id: string, payload: Record<string, unknown>) => request<any>(`/users/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteUser: (id: string) => request<any>(`/users/${id}`, { method: 'DELETE' }),
+  getNotifications: () => request<any>('/notifications'),
+  getNotificationUnreadCount: () => request<any>('/notifications/unread-count'),
+  markNotificationAsRead: (id: string) => request<any>(`/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllNotificationsAsRead: () => request<any>('/notifications/read-all', { method: 'PATCH' }),
 };

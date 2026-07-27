@@ -1,6 +1,7 @@
 import app from './app.js';
 import { config } from './config/index.js';
 import prisma from './config/prisma.js';
+import { cleanupExpiredTokens } from './services/authService.js';
 
 process.on('uncaughtException', (err) => {
   console.log('UNCAUGHT EXCEPTION! Shutting down...');
@@ -12,6 +13,16 @@ const server = app.listen(config.port, () => {
   console.log(`Server running in ${config.nodeEnv} mode on port ${config.port}`);
 });
 
+// Очистка истёкших refresh-токенов каждый час.
+// `.unref()` — таймер не блокирует завершение процесса при shutdown.
+const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+const cleanupTimer = setInterval(() => {
+  cleanupExpiredTokens().catch((err) => {
+    console.error('Token cleanup failed:', err instanceof Error ? err.message : err);
+  });
+}, CLEANUP_INTERVAL_MS);
+cleanupTimer.unref();
+
 // Корректное завершение при получении SIGTERM/SIGINT (docker stop, Ctrl+C).
 // Даёт серверу время дослужить входящие запросы и закрыть пул соединений БД,
 // вместо жёсткого kill по истечении grace period, который рвёт соединения
@@ -21,6 +32,8 @@ const shutdown = async (signal) => {
   if (shuttingDown) return;
   shuttingDown = true;
   console.log(`${signal} received: shutting down gracefully...`);
+
+  clearInterval(cleanupTimer);
 
   // Принимаем новые соединения, но останавливаем уже существующие (keep-alive).
   server.close(async () => {

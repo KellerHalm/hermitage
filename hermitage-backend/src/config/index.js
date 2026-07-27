@@ -18,6 +18,8 @@ export const config = {
   jwtSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m',
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+  cookieDomain: process.env.COOKIE_DOMAIN || undefined,
+  cookieSecure: process.env.COOKIE_SECURE === 'true',
   emailHost: process.env.SMTP_HOST || 'smtp.ethereal.email',
   emailPort: Number(process.env.SMTP_PORT) || 587,
   emailSecure: process.env.SMTP_SECURE === 'true',

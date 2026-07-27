@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import cookieParser from 'cookie-parser';
 import sanitizeHtml from 'sanitize-html';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
@@ -77,9 +78,15 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/refresh', authLimiter);
 
 app.use(express.json({ limit: '10kb' }));
+app.use(cookieParser());
+
+const sanitizeOptions = {
+  allowedTags: ['p', 'br', 'strong', 'em', 'ul', 'ol', 'li'],
+  allowedAttributes: {},
+};
 
 const sanitize = (obj) => {
-  if (typeof obj === 'string') return sanitizeHtml(obj, { allowedTags: [], allowedAttributes: {} });
+  if (typeof obj === 'string') return sanitizeHtml(obj, sanitizeOptions);
   if (Array.isArray(obj)) return obj.map(sanitize);
   if (obj && typeof obj === 'object') {
     const clean = {};

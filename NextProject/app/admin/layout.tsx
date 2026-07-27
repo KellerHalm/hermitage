@@ -18,13 +18,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return;
     }
 
-    const token = Store.token();
-    if (!token) {
-      router.push('/admin/login');
-      return;
-    }
-
-    api.verifyAdmin(token)
+    api.verifyAdmin()
       .then((res) => {
         const role = res?.data?.user?.role;
         if (role !== 'ADMIN' && role !== 'MANAGER') {

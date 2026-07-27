@@ -16,7 +16,7 @@ router.use(protect);
 router.use(restrictTo('ADMIN', 'MANAGER'));
 
 router.post('/', uploadProductFiles.array('images', 10), validate(schemas.createProduct), productController.createProduct);
-router.patch('/:id', uploadProductFiles.array('images', 10), productController.updateProduct);
+router.patch('/:id', uploadProductFiles.array('images', 10), validate(schemas.updateProduct), productController.updateProduct);
 router.delete('/:id', restrictTo('ADMIN'), productController.deleteProduct);
 
 export default router;

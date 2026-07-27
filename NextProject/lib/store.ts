@@ -1,8 +1,6 @@
 ﻿import { api, buildAssetUrl } from './api';
 
-const APP_VERSION = '3.0.0';
-const TOKEN_KEY = 'hd_token';
-const REFRESH_TOKEN_KEY = 'hd_refresh_token';
+const APP_VERSION = '4.0.0';
 const USER_KEY = 'hd_user';
 const GUEST_KEY = 'hd_guest_id';
 const PRODUCTS_KEY = 'hd_products';
@@ -243,28 +241,6 @@ const notify = (eventName?: string) => {
   if (typeof update === 'function') update();
 };
 
-const getToken = () => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(TOKEN_KEY);
-};
-
-const setToken = (token: string | null) => {
-  if (typeof window === 'undefined') return;
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  else localStorage.removeItem(TOKEN_KEY);
-};
-
-const getRefreshToken = () => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
-};
-
-const setRefreshToken = (token: string | null) => {
-  if (typeof window === 'undefined') return;
-  if (token) localStorage.setItem(REFRESH_TOKEN_KEY, token);
-  else localStorage.removeItem(REFRESH_TOKEN_KEY);
-};
-
 const getGuestId = () => {
   if (typeof window === 'undefined') return null;
   let guestId = localStorage.getItem(GUEST_KEY);
@@ -278,7 +254,7 @@ const getGuestId = () => {
 };
 
 const cartAuth = () => ({
-  token: getToken(),
+  token: null as string | null,
   guestId: getGuestId(),
 });
 
@@ -368,16 +344,16 @@ const syncCart = async () => {
   return applyCart(response?.data?.cart);
 };
 
-const syncFavorites = async (token: string) => {
-  const favoritesResponse = await api.getFavorites(token);
+const syncFavorites = async () => {
+  const favoritesResponse = await api.getFavorites();
   const ids = Array.isArray(favoritesResponse?.data?.favorites)
     ? favoritesResponse.data.favorites.map((entry: FavoriteProduct & { product?: any }) => String(entry.productId || entry.product?.id || '')).filter(Boolean)
     : [];
   Storage.set(FAVORITES_KEY, ids);
 };
 
-const syncCompare = async (token: string) => {
-  const response = await api.getCompare(token);
+const syncCompare = async () => {
+  const response = await api.getCompare();
   const ids = Array.isArray(response?.data?.compares)
     ? response.data.compares.map((entry: any) => String(entry.productId || entry.product?.id || '')).filter(Boolean)
     : Array.isArray(response?.data?.items)
@@ -386,8 +362,8 @@ const syncCompare = async (token: string) => {
   Storage.set(COMPARE_KEY, ids.slice(0, 4));
 };
 
-const syncOrders = async (token: string) => {
-  const ordersResponse = await api.getMyOrders(token);
+const syncOrders = async () => {
+  const ordersResponse = await api.getMyOrders();
   const orders = Array.isArray(ordersResponse?.data?.orders)
     ? ordersResponse.data.orders.map(normalizeOrder)
     : [];
@@ -396,37 +372,25 @@ const syncOrders = async (token: string) => {
 };
 
 const syncUserData = async () => {
-  const token = getToken();
-  if (!token) {
+  try {
+    const meResponse = await api.getMe();
+    const user = normalizeUser(meResponse?.data?.user);
+    setCurrentUser(user);
+    await Promise.all([syncFavorites(), syncOrders(), syncCompare()]);
+    notify();
+    return user;
+  } catch {
     clearUserData();
     notify();
     return null;
   }
-
-  try {
-    const meResponse = await api.getMe(token);
-    const user = normalizeUser(meResponse?.data?.user);
-    setCurrentUser(user);
-    await Promise.all([syncFavorites(token), syncOrders(token), syncCompare(token)]);
-    notify();
-    return user;
-  } catch (err: any) {
-    const message = err?.message || '';
-    if (message.includes('User no longer exists') || message.includes('Not authorized') || message.includes('Invalid or expired token')) {
-      setToken(null);
-      setRefreshToken(null);
-      clearUserData();
-      notify();
-    }
-    return null;
-  }
 };
 
-const mergeAndSyncCart = async (token: string) => {
+const mergeAndSyncCart = async () => {
   const guestId = getGuestId();
   if (guestId) {
     try {
-      const response = await api.mergeGuestCart(token, guestId);
+      const response = await api.mergeGuestCart('', guestId);
       if (response?.data?.cart) {
         applyCart(response.data.cart);
         return;
@@ -437,21 +401,11 @@ const mergeAndSyncCart = async (token: string) => {
   await syncCart();
 };
 
-const requireToken = () => {
-  const token = getToken();
-  if (!token) {
-    throw new Error('Требуется авторизация');
-  }
-  return token;
-};
-
 export const Store = {
   init() {
     if (typeof window === 'undefined') return;
 
     window.addEventListener('auth:logout', () => {
-      setToken(null);
-      setRefreshToken(null);
       clearUserData();
       notify();
     });
@@ -472,9 +426,15 @@ export const Store = {
     getGuestId();
   },
 
-  token: getToken,
   guestId: getGuestId,
-  isAuthenticated: () => Boolean(getToken()),
+  isAuthenticated: async (): Promise<boolean> => {
+    try {
+      const res = await api.getMe();
+      return Boolean(res?.data?.user);
+    } catch {
+      return false;
+    }
+  },
   user: (): User | null => Storage.get<User | null>(USER_KEY, null),
   setUser: setCurrentUser,
   cart: (): CartItem[] => Storage.get<CartItem[]>(CART_KEY, []),
@@ -601,70 +561,47 @@ export const Store = {
   async bootstrap() {
     await syncPublicData();
     await syncCart().catch(() => undefined);
-    if (getToken()) {
-      await syncUserData();
-    }
+    await syncUserData();
   },
   async login(email: string, password: string) {
     const response = await api.login({ email, password });
-    const token = response?.token as string;
-    const refreshToken = response?.refreshToken as string;
     const user = normalizeUser(response?.data?.user);
-    setToken(token || null);
-    setRefreshToken(refreshToken || null);
     setCurrentUser(user);
-    if (token) {
-      await mergeAndSyncCart(token);
-      const localCompare = Storage.get<string[]>(COMPARE_KEY, []);
-      if (localCompare.length > 0) {
-        await api.syncCompare(token, localCompare).catch(() => undefined);
-      }
-      await syncUserData();
+    await mergeAndSyncCart();
+    const localCompare = Storage.get<string[]>(COMPARE_KEY, []);
+    if (localCompare.length > 0) {
+      await api.syncCompare('', localCompare).catch(() => undefined);
     }
+    await syncUserData();
     return user;
   },
   async register(payload: { email: string; password: string; firstName: string; lastName: string; phone: string }) {
     const response = await api.register(payload);
-    const token = response?.token as string;
-    const refreshToken = response?.refreshToken as string;
     const user = normalizeUser(response?.data?.user);
-    setToken(token || null);
-    setRefreshToken(refreshToken || null);
     setCurrentUser(user);
-    if (token) {
-      await mergeAndSyncCart(token);
-      const localCompare = Storage.get<string[]>(COMPARE_KEY, []);
-      if (localCompare.length > 0) {
-        await api.syncCompare(token, localCompare).catch(() => undefined);
-      }
-      await syncUserData();
+    await mergeAndSyncCart();
+    const localCompare = Storage.get<string[]>(COMPARE_KEY, []);
+    if (localCompare.length > 0) {
+      await api.syncCompare('', localCompare).catch(() => undefined);
     }
+    await syncUserData();
     return user;
   },
   async updateProfile(payload: { firstName: string; lastName: string; phone: string; email?: string; password?: string }) {
-    const token = requireToken();
-    const response = await api.updateMe(token, payload);
+    const response = await api.updateMe('', payload);
     const user = normalizeUser(response?.data?.user);
     setCurrentUser(user);
     notify();
     return user;
   },
   logout() {
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-      void api.logout(refreshToken).catch(() => undefined);
-    }
-    setToken(null);
-    setRefreshToken(null);
+    void api.logout().catch(() => undefined);
     clearUserData();
     void syncCart().catch(() => undefined);
     notify();
   },
   async deleteAccount() {
-    const token = requireToken();
-    await api.deleteMe(token);
-    setToken(null);
-    setRefreshToken(null);
+    await api.deleteMe();
     clearUserData();
     void syncCart().catch(() => undefined);
     notify();
@@ -683,13 +620,10 @@ export const Store = {
 
     Store.setFavorites(favorites);
 
-    const token = getToken();
-    if (token) {
-      const action = isAdded ? api.addFavorite(token, id) : api.removeFavorite(token, id);
-      void action.catch(async () => {
-        await syncUserData().catch(() => undefined);
-      });
-    }
+    const action = isAdded ? api.addFavorite(id) : api.removeFavorite(id);
+    void action.catch(async () => {
+      await syncUserData().catch(() => undefined);
+    });
 
     return isAdded;
   },
@@ -756,14 +690,11 @@ export const Store = {
 
     Store.setCompare(list);
 
-    const token = getToken();
-    if (token) {
-      const action = isAdded ? api.addCompare(token, id) : api.removeCompare(token, id);
-      void action.catch(async () => {
-        await syncCompare(token).catch(() => undefined);
-        notify();
-      });
-    }
+    const action = isAdded ? api.addCompare(id) : api.removeCompare(id);
+    void action.catch(async () => {
+      await syncCompare().catch(() => undefined);
+      notify();
+    });
 
     return isAdded;
   },
@@ -781,8 +712,7 @@ export const Store = {
     comment?: string;
     items: Array<{ id: string; qty: number }>;
   }) {
-    const token = requireToken();
-    const response = await api.createOrder(token, {
+    const response = await api.createOrder('', {
       customerFirstName: payload.firstName,
       customerLastName: payload.lastName,
       customerPhone: payload.phone,
@@ -799,8 +729,7 @@ export const Store = {
     return normalizeOrder(response?.data?.order);
   },
   async loadAdminOrders() {
-    const token = requireToken();
-    const response = await api.getAdminOrders(token);
+    const response = await api.getAdminOrders();
     const orders = Array.isArray(response?.data?.orders)
       ? response.data.orders.map(normalizeOrder)
       : [];
@@ -808,110 +737,93 @@ export const Store = {
     return orders;
   },
   async updateOrderStatus(id: string, status: OrderStatus) {
-    const token = requireToken();
-    const response = await api.updateOrderStatus(token, id, status);
+    const response = await api.updateOrderStatus(id, status);
     const updated = normalizeOrder(response?.data?.order);
     const current = Store.getAdminOrders().map((order) => order.id === updated.id ? updated : order);
     Store.setAdminOrders(current);
     return updated;
   },
   async createCategory(payload: { name: string; image?: string | null; parentId?: string | null; file?: File | null }) {
-    const token = requireToken();
     const formData = new FormData();
     formData.append('name', payload.name);
     if (payload.parentId) formData.append('parentId', payload.parentId);
     if (payload.file) formData.append('image', payload.file);
     else if (payload.image) formData.append('image', payload.image);
-    await api.createCategory(token, formData);
+    await api.createCategory('', formData);
     return syncPublicData();
   },
   async updateCategory(id: string, payload: { name?: string; image?: string | null; parentId?: string | null; file?: File | null }) {
-    const token = requireToken();
     const formData = new FormData();
     if (payload.name) formData.append('name', payload.name);
     if (payload.parentId !== undefined) formData.append('parentId', payload.parentId || '');
     if (payload.file) formData.append('image', payload.file);
     else if (payload.image !== undefined) formData.append('image', payload.image || '');
-    await api.updateCategory(token, id, formData);
+    await api.updateCategory('', id, formData);
     return syncPublicData();
   },
   async deleteCategory(id: string) {
-    const token = requireToken();
-    await api.deleteCategory(token, id);
+    await api.deleteCategory(id);
     return syncPublicData();
   },
   async createBrand(payload: { name: string; country?: string | null }) {
-    const token = requireToken();
-    await api.createBrand(token, payload);
+    await api.createBrand('', payload);
     return syncPublicData();
   },
   async updateBrand(id: string, payload: { name?: string; country?: string | null }) {
-    const token = requireToken();
-    await api.updateBrand(token, id, payload);
+    await api.updateBrand('', id, payload);
     return syncPublicData();
   },
   async deleteBrand(id: string) {
-    const token = requireToken();
-    await api.deleteBrand(token, id);
+    await api.deleteBrand(id);
     return syncPublicData();
   },
   async createCountry(payload: { name: string; image?: string | null; file?: File | null }) {
-    const token = requireToken();
     const formData = new FormData();
     formData.append('name', payload.name);
     if (payload.file) formData.append('image', payload.file);
     else if (payload.image) formData.append('image', payload.image);
-    await api.createCountry(token, formData);
+    await api.createCountry('', formData);
     return syncPublicData();
   },
   async updateCountry(id: string, payload: { name?: string; image?: string | null; file?: File | null }) {
-    const token = requireToken();
     const formData = new FormData();
     if (payload.name) formData.append('name', payload.name);
     if (payload.file) formData.append('image', payload.file);
     else if (payload.image !== undefined) formData.append('image', payload.image || '');
-    await api.updateCountry(token, id, formData);
+    await api.updateCountry('', id, formData);
     return syncPublicData();
   },
   async deleteCountry(id: string) {
-    const token = requireToken();
-    await api.deleteCountry(token, id);
+    await api.deleteCountry(id);
     return syncPublicData();
   },
   async loadUsers(params?: Record<string, string>) {
-    const token = requireToken();
-    const response = await api.getUsers(token, params);
+    const response = await api.getUsers('', params);
     return Array.isArray(response?.data?.users) ? response.data.users : [];
   },
   async createUser(payload: { email: string; password: string; firstName?: string; lastName?: string; phone?: string; role?: string }) {
-    const token = requireToken();
-    const response = await api.createUser(token, payload);
+    const response = await api.createUser('', payload);
     return response?.data?.user;
   },
   async updateUser(id: string, payload: Record<string, unknown>) {
-    const token = requireToken();
-    const response = await api.updateUser(token, id, payload);
+    const response = await api.updateUser('', id, payload);
     return response?.data?.user;
   },
   async deleteUser(id: string) {
-    const token = requireToken();
-    await api.deleteUser(token, id);
+    await api.deleteUser(id);
   },
   async createProduct(product: Record<string, any>) {
-    const token = requireToken();
-    const response = await api.createProduct(token, buildProductFormData(product));
+    const response = await api.createProduct('', buildProductFormData(product));
     await syncPublicData();
     return normalizeProduct(response?.data?.product);
   },
   async updateProduct(id: string, product: Record<string, any>) {
-    const token = requireToken();
-    const response = await api.updateProduct(token, id, buildProductFormData(product));
+    const response = await api.updateProduct('', id, buildProductFormData(product));
     await syncPublicData();
     return normalizeProduct(response?.data?.product);
   },
   async deleteProduct(id: string) {
-    const token = requireToken();
-    await api.deleteProduct(token, id);
+    await api.deleteProduct(id);
     await syncPublicData();
   },
   subscribeToProducts(callback: () => void) {
@@ -928,10 +840,8 @@ export const Store = {
   },
 
   async getNotifications() {
-    const token = getToken();
-    if (!token) return [];
     try {
-      const response = await api.getNotifications(token);
+      const response = await api.getNotifications();
       return response?.data?.notifications || [];
     } catch {
       return [];
@@ -939,10 +849,8 @@ export const Store = {
   },
 
   async getNotificationUnreadCount() {
-    const token = getToken();
-    if (!token) return 0;
     try {
-      const response = await api.getNotificationUnreadCount(token);
+      const response = await api.getNotificationUnreadCount();
       return response?.data?.count || 0;
     } catch {
       return 0;
@@ -950,14 +858,10 @@ export const Store = {
   },
 
   async markNotificationAsRead(id: string) {
-    const token = getToken();
-    if (!token) return;
-    await api.markNotificationAsRead(token, id);
+    await api.markNotificationAsRead(id);
   },
 
   async markAllNotificationsAsRead() {
-    const token = getToken();
-    if (!token) return;
-    await api.markAllNotificationsAsRead(token);
+    await api.markAllNotificationsAsRead();
   },
 };

@@ -14,6 +14,8 @@ const signRefreshToken = (id, jti) => jwt.sign({ id, jti }, config.jwtSecret, {
   expiresIn: config.jwtRefreshExpiresIn,
 });
 
+const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
+
 const parseDuration = (duration) => {
   const match = duration.match(/^(\d+)([smhd])$/);
   if (!match) return 30 * 24 * 60 * 60 * 1000;
@@ -28,8 +30,9 @@ const createRefreshToken = async (userId) => {
   const token = signRefreshToken(userId, jti);
   const expiresAt = new Date(Date.now() + parseDuration(config.jwtRefreshExpiresIn));
 
+  const hashed = hashToken(token);
   await prisma.refreshToken.create({
-    data: { token, userId, expiresAt },
+    data: { token: hashed, userId, expiresAt },
   });
 
   return token;
@@ -98,8 +101,9 @@ export const refreshUserToken = async (refreshToken) => {
     throw new AppError('Invalid or expired refresh token', 401);
   }
 
+  const hashed = hashToken(refreshToken);
   const stored = await prisma.refreshToken.findUnique({
-    where: { token: refreshToken },
+    where: { token: hashed },
   });
 
   if (!stored) {
@@ -126,12 +130,23 @@ export const refreshUserToken = async (refreshToken) => {
 
 export const logoutUser = async (refreshToken) => {
   if (refreshToken) {
-    await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
+    const hashed = hashToken(refreshToken);
+    await prisma.refreshToken.deleteMany({ where: { token: hashed } });
   }
 };
 
 export const revokeAllUserTokens = async (userId) => {
   await prisma.refreshToken.deleteMany({ where: { userId } });
+};
+
+export const cleanupExpiredTokens = async () => {
+  const { count } = await prisma.refreshToken.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
+  if (count > 0) {
+    console.log(`Cleaned up ${count} expired refresh token(s)`);
+  }
+  return count;
 };
 
 export const updateUser = async (id, data) => {

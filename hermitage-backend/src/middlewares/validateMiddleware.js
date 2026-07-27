@@ -77,6 +77,43 @@ export const schemas = {
     brandId: Joi.string().uuid().allow(null, ''),
   }),
 
+  updateProduct: Joi.object({
+    title: Joi.string().max(300),
+    description: Joi.string().max(10000),
+    price: Joi.number().positive().precision(2),
+    oldPrice: Joi.number().positive().precision(2).allow(null),
+    sku: Joi.string().max(100).allow('', null),
+    sizes: Joi.string().max(200).allow('', null),
+    stockStatus: Joi.string().valid('IN_STOCK', 'OUT_OF_STOCK', 'ON_ORDER'),
+    stockQuantity: Joi.number().integer().min(0).allow(null),
+    country: Joi.string().max(100).allow('', null),
+    material: Joi.string().max(200).allow('', null),
+    color: Joi.string().max(100).allow('', null),
+    popular: Joi.boolean(),
+    isNew: Joi.boolean(),
+    isSale: Joi.boolean(),
+    categoryId: Joi.string().uuid(),
+    brandId: Joi.string().uuid().allow(null, ''),
+  }).min(1),
+
+  createUser: Joi.object({
+    email: Joi.string().email().max(255).required(),
+    password: Joi.string().min(8).max(128).required(),
+    firstName: Joi.string().max(100).allow('', null),
+    lastName: Joi.string().max(100).allow('', null),
+    phone: Joi.string().max(20).allow('', null),
+    role: Joi.string().valid('ADMIN', 'MANAGER', 'CUSTOMER'),
+  }),
+
+  updateUser: Joi.object({
+    email: Joi.string().email().max(255),
+    password: Joi.string().min(8).max(128),
+    firstName: Joi.string().max(100).allow('', null),
+    lastName: Joi.string().max(100).allow('', null),
+    phone: Joi.string().max(20).allow('', null),
+    role: Joi.string().valid('ADMIN', 'MANAGER', 'CUSTOMER'),
+  }).min(1),
+
   updateOrderStatus: Joi.object({
     status: Joi.string().valid('PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED').required(),
   }),
