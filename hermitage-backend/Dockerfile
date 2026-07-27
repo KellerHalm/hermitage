@@ -20,6 +20,9 @@ RUN mkdir -p uploads/images
 # выставить в runtime, errorHandler отдаёт полный stack в ответах.
 ENV NODE_ENV=production
 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
 EXPOSE 5000
 
 CMD ["sh", "-c", "npx prisma migrate deploy && node src/server.js"]
