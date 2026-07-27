@@ -69,7 +69,7 @@ services:
       - "127.0.0.1:3000:3000"
 
   nginx:
-    image: nginx:alpine
+    image: nginx:stable-alpine
     restart: unless-stopped
     depends_on:
       - frontend
