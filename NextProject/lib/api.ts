@@ -8,7 +8,6 @@ type RequestOptions = {
   headers?: HeadersInit;
   method?: HttpMethod;
   token?: string | null;
-  guestId?: string | null;
 };
 
 const buildHeaders = (options: RequestOptions) => {
@@ -16,10 +15,6 @@ const buildHeaders = (options: RequestOptions) => {
 
   if (options.body && !(options.body instanceof FormData) && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
-  }
-
-  if (options.guestId) {
-    headers.set('X-Guest-Id', options.guestId);
   }
 
   return headers;
@@ -133,7 +128,7 @@ const buildQuery = (params?: ProductQuery) => {
   return serialized ? `?${serialized}` : '';
 };
 
-const withAuth = (token?: string | null, guestId?: string | null) => ({ token: token || null, guestId: guestId || null });
+const withAuth = (token?: string | null) => ({ token: token || null });
 
 export const api = {
   origin: API_ORIGIN,
@@ -162,12 +157,12 @@ export const api = {
   addCompare: (productId: string) => request<any>('/compare', { method: 'POST', body: JSON.stringify({ productId }) }),
   removeCompare: (productId: string) => request<any>(`/compare/${productId}`, { method: 'DELETE' }),
   syncCompare: (token: string, productIds: string[]) => request<any>('/compare/sync', { method: 'POST', body: JSON.stringify({ productIds }) }),
-  getCart: (auth: { token?: string | null; guestId?: string | null }) => request<any>('/cart', withAuth(auth.token, auth.guestId)),
-  addCartItem: (auth: { token?: string | null; guestId?: string | null }, productId: string, quantity = 1) => request<any>('/cart/items', { method: 'POST', ...withAuth(auth.token, auth.guestId), body: JSON.stringify({ productId, quantity }) }),
-  updateCartItem: (auth: { token?: string | null; guestId?: string | null }, productId: string, quantity: number) => request<any>(`/cart/items/${productId}`, { method: 'PATCH', ...withAuth(auth.token, auth.guestId), body: JSON.stringify({ quantity }) }),
-  removeCartItem: (auth: { token?: string | null; guestId?: string | null }, productId: string) => request<any>(`/cart/items/${productId}`, { method: 'DELETE', ...withAuth(auth.token, auth.guestId) }),
-  clearCart: (auth: { token?: string | null; guestId?: string | null }) => request<any>('/cart', { method: 'DELETE', ...withAuth(auth.token, auth.guestId) }),
-  mergeGuestCart: (token: string, guestId: string) => request<any>('/cart/merge', { method: 'POST', body: JSON.stringify({ guestId }) }),
+  getCart: (auth: { token?: string | null }) => request<any>('/cart', withAuth(auth.token)),
+  addCartItem: (auth: { token?: string | null }, productId: string, quantity = 1) => request<any>('/cart/items', { method: 'POST', ...withAuth(auth.token), body: JSON.stringify({ productId, quantity }) }),
+  updateCartItem: (auth: { token?: string | null }, productId: string, quantity: number) => request<any>(`/cart/items/${productId}`, { method: 'PATCH', ...withAuth(auth.token), body: JSON.stringify({ quantity }) }),
+  removeCartItem: (auth: { token?: string | null }, productId: string) => request<any>(`/cart/items/${productId}`, { method: 'DELETE', ...withAuth(auth.token) }),
+  clearCart: (auth: { token?: string | null }) => request<any>('/cart', { method: 'DELETE', ...withAuth(auth.token) }),
+  mergeGuestCart: (token: string) => request<any>('/cart/merge', { method: 'POST', body: JSON.stringify({}) }),
   getMyOrders: () => request<any>('/orders/my-orders'),
   createOrder: (token: string, payload: Record<string, unknown>) => request<any>('/orders', { method: 'POST', body: JSON.stringify(payload) }),
   getAdminOrders: () => request<any>('/orders?limit=200'),

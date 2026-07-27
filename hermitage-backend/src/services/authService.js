@@ -10,7 +10,7 @@ const signAccessToken = (id) => jwt.sign({ id }, config.jwtSecret, {
   expiresIn: config.jwtExpiresIn,
 });
 
-const signRefreshToken = (id, jti) => jwt.sign({ id, jti }, config.jwtSecret, {
+const signRefreshToken = (id, jti) => jwt.sign({ id, jti }, config.jwtRefreshSecret, {
   expiresIn: config.jwtRefreshExpiresIn,
 });
 
@@ -96,7 +96,7 @@ export const refreshUserToken = async (refreshToken) => {
 
   let decoded;
   try {
-    decoded = jwt.verify(refreshToken, config.jwtSecret);
+    decoded = jwt.verify(refreshToken, config.jwtRefreshSecret);
   } catch {
     throw new AppError('Invalid or expired refresh token', 401);
   }

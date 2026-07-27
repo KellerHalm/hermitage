@@ -47,7 +47,7 @@ export const clearCart = async (req, res, next) => {
 
 export const mergeGuestCart = async (req, res, next) => {
   try {
-    const cart = await cartService.mergeGuestCart(req.user.id, req.body.guestId);
+    const cart = await cartService.mergeGuestCart(req.user.id, req.guestId);
     res.status(200).json({ status: 'success', data: { cart } });
   } catch (error) {
     next(error);

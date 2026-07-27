@@ -10,12 +10,18 @@ if (!jwtSecret || jwtSecret === 'secret' || jwtSecret === 'your_super_secret_jwt
   throw new Error('JWT_SECRET must be set to a secure random string (min 32 chars)');
 }
 
+const jwtRefreshSecret = process.env.JWT_REFRESH_SECRET;
+if (!jwtRefreshSecret || jwtRefreshSecret === jwtSecret) {
+  throw new Error('JWT_REFRESH_SECRET must be set and must differ from JWT_SECRET');
+}
+
 export const config = {
   port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
   clientUrl: clientUrlRaw,
   clientOrigins,
   jwtSecret,
+  jwtRefreshSecret,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '15m',
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
   cookieDomain: process.env.COOKIE_DOMAIN || undefined,

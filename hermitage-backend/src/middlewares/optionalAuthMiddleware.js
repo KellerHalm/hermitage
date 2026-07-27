@@ -1,6 +1,10 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { config } from '../config/index.js';
 import prisma from '../config/prisma.js';
+
+const GUEST_COOKIE = 'guest_id';
+const GUEST_COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 export const optionalProtect = async (req, res, next) => {
   try {
@@ -20,10 +24,37 @@ export const optionalProtect = async (req, res, next) => {
       }
     }
 
-    req.guestId = req.headers['x-guest-id'] || null;
+    if (!req.user) {
+      let guestId = req.cookies?.[GUEST_COOKIE];
+      if (!guestId || typeof guestId !== 'string' || !/^[a-f0-9-]{36}$/.test(guestId)) {
+        guestId = crypto.randomUUID();
+        res.cookie(GUEST_COOKIE, guestId, {
+          httpOnly: true,
+          secure: config.cookieSecure,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: GUEST_COOKIE_MAX_AGE,
+        });
+      }
+      req.guestId = guestId;
+    }
+
     next();
   } catch {
-    req.guestId = req.headers['x-guest-id'] || null;
+    if (!req.user) {
+      let guestId = req.cookies?.[GUEST_COOKIE];
+      if (!guestId || typeof guestId !== 'string' || !/^[a-f0-9-]{36}$/.test(guestId)) {
+        guestId = crypto.randomUUID();
+        res.cookie(GUEST_COOKIE, guestId, {
+          httpOnly: true,
+          secure: config.cookieSecure,
+          sameSite: 'lax',
+          path: '/',
+          maxAge: GUEST_COOKIE_MAX_AGE,
+        });
+      }
+      req.guestId = guestId;
+    }
     next();
   }
 };

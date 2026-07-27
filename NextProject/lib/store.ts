@@ -2,7 +2,6 @@
 
 const APP_VERSION = '4.0.0';
 const USER_KEY = 'hd_user';
-const GUEST_KEY = 'hd_guest_id';
 const PRODUCTS_KEY = 'hd_products';
 const CATEGORIES_KEY = 'categories';
 const BRANDS_KEY = 'brands';
@@ -241,21 +240,8 @@ const notify = (eventName?: string) => {
   if (typeof update === 'function') update();
 };
 
-const getGuestId = () => {
-  if (typeof window === 'undefined') return null;
-  let guestId = localStorage.getItem(GUEST_KEY);
-  if (!guestId) {
-    guestId = typeof crypto !== 'undefined' && crypto.randomUUID
-      ? crypto.randomUUID()
-      : `guest-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    localStorage.setItem(GUEST_KEY, guestId);
-  }
-  return guestId;
-};
-
 const cartAuth = () => ({
   token: null as string | null,
-  guestId: getGuestId(),
 });
 
 const setCurrentUser = (user: User | null) => {
@@ -387,16 +373,13 @@ const syncUserData = async () => {
 };
 
 const mergeAndSyncCart = async () => {
-  const guestId = getGuestId();
-  if (guestId) {
-    try {
-      const response = await api.mergeGuestCart('', guestId);
-      if (response?.data?.cart) {
-        applyCart(response.data.cart);
-        return;
-      }
-    } catch {
+  try {
+    const response = await api.mergeGuestCart('');
+    if (response?.data?.cart) {
+      applyCart(response.data.cart);
+      return;
     }
+  } catch {
   }
   await syncCart();
 };
@@ -414,7 +397,6 @@ export const Store = {
 
     if (version !== APP_VERSION) {
       Object.keys(localStorage).forEach((key) => {
-        if (key === GUEST_KEY) return;
         if (key.startsWith('hd_') || key === 'products' || key === 'categories' || key === 'brands' || key === 'countries') {
           localStorage.removeItem(key);
         }
@@ -422,11 +404,8 @@ export const Store = {
 
       localStorage.setItem(VERSION_KEY, APP_VERSION);
     }
-
-    getGuestId();
   },
 
-  guestId: getGuestId,
   isAuthenticated: async (): Promise<boolean> => {
     try {
       const res = await api.getMe();
