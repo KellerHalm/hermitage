@@ -13,6 +13,9 @@ const ROLE_OPTIONS = [
 export default function UsersPage() {
   const [users, setUsers] = useState<any[]>([]);
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [sortField, setSortField] = useState<'role' | 'createdAt'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
@@ -42,16 +45,27 @@ export default function UsersPage() {
     void loadUsers();
   }, []);
 
-  const filteredUsers = users.filter((user) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return (
-      user.email?.toLowerCase().includes(q) ||
-      user.firstName?.toLowerCase().includes(q) ||
-      user.lastName?.toLowerCase().includes(q) ||
-      user.phone?.toLowerCase().includes(q)
-    );
-  });
+  const filteredUsers = users
+    .filter((user) => {
+      if (roleFilter && user.role !== roleFilter) return false;
+      if (!search) return true;
+      const q = search.toLowerCase();
+      return (
+        user.email?.toLowerCase().includes(q) ||
+        user.firstName?.toLowerCase().includes(q) ||
+        user.lastName?.toLowerCase().includes(q) ||
+        user.phone?.toLowerCase().includes(q)
+      );
+    })
+    .sort((a, b) => {
+      if (sortField === 'role') {
+        const order = sortOrder === 'asc' ? 1 : -1;
+        return a.role.localeCompare(b.role) * order;
+      }
+      const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return sortOrder === 'asc' ? aDate - bDate : bDate - aDate;
+    });
 
   const handleCreate = async () => {
     if (!formData.email.trim()) {
@@ -115,6 +129,34 @@ export default function UsersPage() {
       </div>
 
       <input type="text" placeholder="Поиск по email, имени, телефону..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '4px', marginBottom: '24px', fontSize: '14px', boxSizing: 'border-box' }} />
+
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          style={{ padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', background: '#fff', cursor: 'pointer' }}
+        >
+          <option value="">Все роли</option>
+          {ROLE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+
+        <select
+          value={`${sortField}:${sortOrder}`}
+          onChange={(e) => {
+            const [field, order] = e.target.value.split(':');
+            setSortField(field as 'role' | 'createdAt');
+            setSortOrder(order as 'asc' | 'desc');
+          }}
+          style={{ padding: '10px 12px', border: '1px solid #ddd', borderRadius: '4px', fontSize: '14px', background: '#fff', cursor: 'pointer' }}
+        >
+          <option value="createdAt:desc">Дата (новые)</option>
+          <option value="createdAt:asc">Дата (старые)</option>
+          <option value="role:asc">Роль (А→Я)</option>
+          <option value="role:desc">Роль (Я→А)</option>
+        </select>
+      </div>
 
       <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', marginBottom: '24px' }}>
         <div style={{ minWidth: '900px', background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>

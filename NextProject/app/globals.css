@@ -627,6 +627,135 @@ body.search-open .site-header--hero .site-nav a {
   }
 }
 
+/* ===== БУРГЕР-МЕНЮ (1308px — 993px) ===== */
+@media (max-width: 1308px) and (min-width: 993px) {
+  .nav-toggle {
+    display: flex;
+    width: 32px;
+    height: 24px;
+  }
+
+  .nav-toggle span {
+    background: currentColor;
+    height: 2px;
+    border-radius: 2px;
+    transition: all 0.3s ease;
+  }
+
+  .site-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    max-width: 100%;
+    height: 100vh;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+    margin: 0;
+    padding: 100px 32px 40px;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(-100%);
+    z-index: 101;
+    overflow-y: auto;
+  }
+
+  .site-nav.is-open {
+    transform: translateX(0);
+  }
+
+  .site-nav ul {
+    flex-direction: column;
+    gap: 24px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .site-nav li {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 12px;
+  }
+
+  .site-nav a {
+    font-size: 1.3rem;
+    font-weight: 400;
+    font-family: var(--font-display);
+    color: rgba(255, 255, 255, 0.85) !important;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    display: block;
+  }
+
+  .site-nav a:hover {
+    color: var(--gold) !important;
+    transform: translateX(8px);
+  }
+
+  .site-nav::before {
+    content: "МЕНЮ";
+    position: absolute;
+    top: 60px;
+    left: 32px;
+    font-size: 0.7rem;
+    letter-spacing: 3px;
+    color: var(--gold);
+    font-weight: 500;
+  }
+
+  .site-nav::after {
+    content: '';
+    position: absolute;
+    bottom: 30px;
+    left: 32px;
+    width: 50px;
+    height: 1px;
+    background: var(--gold);
+  }
+
+  body.nav-open {
+    overflow: hidden;
+  }
+
+  body.nav-open::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 100;
+    backdrop-filter: blur(3px);
+  }
+
+  .site-header__inner {
+    padding: 12px 20px;
+  }
+
+  .nav-close {
+    display: none;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    color: white !important;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 103;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+
+  .nav-close {
+    display: flex !important;
+  }
+
+  .nav-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
 /* ===== ПРЕМИАЛЬНОЕ БУРГЕР-МЕНЮ ===== */
 @media (max-width: 992px) {
   .nav-toggle {
@@ -773,6 +902,7 @@ body.search-open .site-header--hero .site-nav a {
   position: absolute;
   inset: 0;
   z-index: 0;
+  overflow: hidden;
 }
 
 .hero__bg img {
@@ -955,12 +1085,13 @@ body.search-open .site-header--hero .site-nav a {
 /* Адаптация для мобильных */
 @media (max-width: 768px) {
   .categories-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
   }
 
   .category-card {
-    min-height: 140px;
+    aspect-ratio: 4 / 3;
+    min-height: 180px;
   }
 
   .category-card__label {
@@ -1010,7 +1141,7 @@ body.search-open .site-header--hero .site-nav a {
 .product-card__media {
   display: block;
   width: 100%;
-  height: auto;               /* ✅ Убираем фиксированную высоту */
+  aspect-ratio: 1 / 1;
   overflow: hidden;
   position: relative;
   background: #ece8e2;
@@ -1019,9 +1150,9 @@ body.search-open .site-header--hero .site-nav a {
 .product-card__image img,
 .product-card__media img {
   width: 100%;
-  height: auto;               /* ✅ Автоматическая высота */
+  height: 100%;
   object-fit: cover;
-  display: block;             /* ✅ Убирает пустоту снизу */
+  display: block;
   transition: transform 0.4s;
   background: #ece8e2;
 }
@@ -1252,28 +1383,50 @@ body.search-open .site-header--hero .site-nav a {
 
 /* COUNTRIES */
 .countries-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 20px;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 8px;
+  scrollbar-width: none;
+}
+
+.countries-grid::-webkit-scrollbar {
+  display: none;
 }
 
 .country-card {
-  text-align: center;
-  border-radius: 16px;
+  flex: 0 0 220px;
+  border-radius: 12px;
   overflow: hidden;
-  background: var(--white);
-  transition: var(--transition);
+  position: relative;
+  scroll-snap-align: start;
+  aspect-ratio: 4 / 3;
+  min-height: 180px;
 }
 
 .country-card img {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: 100%;
   object-fit: cover;
+  transition: transform 0.4s;
+}
+
+.country-card:hover img {
+  transform: scale(1.05);
 }
 
 .country-card__label {
-  display: block;
-  padding: 12px;
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  padding: 4px 12px;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.8rem;
   font-weight: 500;
 }
 
@@ -1294,6 +1447,7 @@ body.search-open .site-header--hero .site-nav a {
 .promo-banner__bg {
   position: absolute;
   inset: 0;
+  overflow: hidden;
 }
 
 .promo-banner__bg img {
@@ -1542,6 +1696,10 @@ body.search-open .site-header--hero .site-nav a {
   overflow: hidden;
   background: #f0f0f0;
   margin-bottom: 16px;
+  max-height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 
@@ -1586,7 +1744,9 @@ body.search-open .site-header--hero .site-nav a {
 
 .product-gallery__main img {
   width: 100%;
-  height: auto;
+  height: 100%;
+  max-height: 600px;
+  object-fit: contain;
 }
 
 .product-gallery__thumbs {
@@ -2349,13 +2509,13 @@ border-spacing: 0;
   }
 
   .categories-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
   }
 
   .category-card {
-    aspect-ratio: 3 / 4;
-    border-radius: 12px;
+    aspect-ratio: 4 / 3;
+    min-height: 180px;
   }
 
   .category-card__label {
@@ -2363,24 +2523,6 @@ border-spacing: 0;
     left: 10px;
     font-size: 0.8rem;
     padding: 4px 12px;
-  }
-
-  .countries-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 10px;
-  }
-
-  .country-card {
-    border-radius: 12px;
-  }
-
-  .country-card img {
-    aspect-ratio: 1 / 1;
-  }
-
-  .country-card__label {
-    padding: 8px 4px;
-    font-size: 0.8rem;
   }
 
   .products-grid .product-card__body .btn {
@@ -2740,11 +2882,14 @@ border-spacing: 0;
     border-radius: 16px;
     overflow: hidden;
     margin-bottom: 12px;
+    max-height: 400px;
   }
 
   .product-gallery__main img {
     width: 100%;
-    height: auto;
+    height: 100%;
+    max-height: 400px;
+    object-fit: contain;
     display: block;
   }
 
@@ -2818,6 +2963,146 @@ border-spacing: 0;
 @media (min-width: 1025px) {
   .nav-close {
     display: none !important;
+  }
+}
+
+/* ===== TABLET: 769px – 1100px ===== */
+@media (min-width: 769px) and (max-width: 1100px) {
+  .hero {
+    min-height: 75vh;
+    padding: 100px 20px 60px;
+  }
+
+  .hero__title {
+    font-size: clamp(2.2rem, 6vw, 3.5rem);
+    letter-spacing: 4px;
+  }
+
+  .hero__tagline {
+    font-size: 1rem;
+  }
+
+  .section {
+    padding: 48px 0;
+  }
+
+  .container {
+    padding: 0 20px;
+  }
+
+  .section__title {
+    font-size: 2rem;
+    margin-bottom: 28px;
+  }
+
+  .categories-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+  }
+
+  .category-card {
+    aspect-ratio: 4 / 3;
+    min-height: 180px;
+  }
+
+  .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+
+  .slider__track .product-card {
+    flex: 0 0 240px;
+  }
+
+  .product-layout {
+    grid-template-columns: 55% 45%;
+    gap: 20px;
+    padding: 20px 12px;
+  }
+
+  .product-gallery__main {
+    border-radius: 16px;
+  }
+
+  .product-gallery__thumbs {
+    gap: 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .product-gallery__thumbs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .product-gallery__thumbs button {
+    width: 80px;
+    height: 80px;
+    flex: 0 0 80px;
+    border-radius: 10px;
+  }
+
+  .gallery-thumbs-wrapper {
+    overflow: hidden;
+  }
+
+  .gallery-main-arrow {
+    width: 38px;
+    height: 38px;
+    font-size: 22px;
+  }
+
+  .gallery-main-arrow--left {
+    left: 10px;
+  }
+
+  .gallery-main-arrow--right {
+    right: 10px;
+  }
+
+  .product-info h1 {
+    font-size: 1.6rem;
+  }
+
+  .product-info__price {
+    font-size: 1.5rem;
+  }
+
+  .promo-banner {
+    min-height: 220px;
+  }
+
+  .promo-banner h3 {
+    font-size: 1.5rem;
+  }
+
+  .about-block {
+    gap: 32px;
+  }
+
+  .about-block__image img {
+    border-radius: 16px;
+  }
+
+  .footer-grid {
+    gap: 32px;
+  }
+
+  .cart-item__img {
+    width: 88px;
+    height: 88px;
+  }
+
+  .product-card__fav {
+    width: 32px;
+    height: 32px;
+    top: -34px;
+    right: 8px;
+  }
+
+  .product-card__fav svg {
+    width: 16px;
+    height: 16px;
   }
 }
 
@@ -2910,7 +3195,7 @@ html, body {
 /* Мобильная версия - карточки товаров */
 @media (max-width: 768px) {
   .product-card {
-    height: auto !important;       /* ✅ Убираем фиксированную высоту */
+    height: auto;
     min-height: auto;
   }
 
@@ -3144,8 +3429,8 @@ height: 110px;
 .product-card__media {
   display: block;
   width: 100%;
-  height: auto;               /* Возвращаем как было — естественная высота */
-  overflow: hidden;            /* ЖЕЛЕЗНО обрезаем всё, что выходит за края */
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
   position: relative;
   background: #ece8e2;
 }
@@ -3153,11 +3438,10 @@ height: 110px;
 .product-card__image img,
 .product-card__media img {
   width: 100%;
-  height: auto;
+  height: 100%;
   object-fit: cover;
   display: block;
   background: #ece8e2;
-  /* transform не меняет физический размер блока, поэтому соседей не толкает */
   transition: transform 0.5s cubic-bezier(0.23, 1, 0.32, 1);
 }
 
@@ -3216,74 +3500,10 @@ height: 110px;
   box-shadow: 0 15px 30px rgba(0,0,0,0.15);
 }
 
-/* Стеклянная плашка с названием страны */
-.country-card__label {
-  backdrop-filter: blur(8px);
-  background: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.3s ease;
-}
-
 .country-card:hover .country-card__label {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(0, 0, 0, 0.75);
 }
 
-
-/* ===== Размер карточек стран ===== */
-.countries-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.country-card {
-  height: 260px;
-  border-radius: 16px;
-  overflow: hidden;
-  position: relative;
-}
-
-.country-card img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.country-card__label {
-  position: absolute;
-  bottom: 16px;
-  left: 16px;
-  padding: 8px 20px;
-  border-radius: 100px;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  color: #fff;
-}
-
-/* Мобильная версия */
-@media (max-width: 768px) {
-  .countries-grid {
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-
-  .country-card {
-    height: 180px;
-  }
-}
-
-@media (max-width: 480px) {
-  .countries-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .country-card {
-    height: 200px;
-  }
-}
 
 .products-grid {
   align-items: start;

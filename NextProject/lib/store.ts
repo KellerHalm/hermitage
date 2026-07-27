@@ -878,9 +878,9 @@ export const Store = {
     await api.deleteCountry(token, id);
     return syncPublicData();
   },
-  async loadUsers() {
+  async loadUsers(params?: Record<string, string>) {
     const token = requireToken();
-    const response = await api.getUsers(token);
+    const response = await api.getUsers(token, params);
     return Array.isArray(response?.data?.users) ? response.data.users : [];
   },
   async createUser(payload: { email: string; password: string; firstName?: string; lastName?: string; phone?: string; role?: string }) {

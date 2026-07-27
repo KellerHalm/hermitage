@@ -10,7 +10,7 @@ const sanitizeUser = (user) => {
 };
 
 export const getAllUsers = async (query) => {
-  const { role, search } = query;
+  const { role, search, sortBy, sortOrder } = query;
   const { pageNumber, take, skip } = parsePagination(query, { defaultLimit: 100 });
 
   const where = {};
@@ -24,12 +24,16 @@ export const getAllUsers = async (query) => {
     ];
   }
 
+  const allowedSortFields = ['createdAt', 'role', 'email', 'firstName'];
+  const field = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+  const order = sortOrder === 'asc' ? 'asc' : 'desc';
+
   const [users, total] = await Promise.all([
     prisma.user.findMany({
       where,
       skip,
       take,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { [field]: order },
     }),
     prisma.user.count({ where }),
   ]);

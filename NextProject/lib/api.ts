@@ -202,7 +202,10 @@ export const api = {
   createProduct: (token: string, payload: FormData) => request<any>('/products', { method: 'POST', token, body: payload }),
   updateProduct: (token: string, id: string, payload: FormData) => request<any>(`/products/${id}`, { method: 'PATCH', token, body: payload }),
   deleteProduct: (token: string, id: string) => request<any>(`/products/${id}`, { method: 'DELETE', token }),
-  getUsers: (token: string) => request<any>('/users', { token }),
+  getUsers: (token: string, params?: Record<string, string>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return request<any>(`/users${qs}`, { token });
+  },
   getUserById: (token: string, id: string) => request<any>(`/users/${id}`, { token }),
   createUser: (token: string, payload: Record<string, unknown>) => request<any>('/users', { method: 'POST', token, body: JSON.stringify(payload) }),
   updateUser: (token: string, id: string, payload: Record<string, unknown>) => request<any>(`/users/${id}`, { method: 'PATCH', token, body: JSON.stringify(payload) }),
