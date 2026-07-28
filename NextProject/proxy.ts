@@ -1,10 +1,43 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-// CSP заголовки задаются в nginx.conf (Content-Security-Policy).
-// Proxy-функция оставлена как заглушка на случай расширения логики
-// (редиректы, rewrite, авторизация и т.д.).
-export function proxy(_request: NextRequest) {
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+
+const ADMIN_PATH_RE = /^\/admin(?:\/|$)/;
+const ADMIN_LOGIN_PATH = '/admin/login';
+
+async function isAdminAuthenticated(cookies: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/auth/verify-admin`, {
+      method: 'GET',
+      headers: { Cookie: cookies },
+      cache: 'no-store',
+    });
+
+    if (!res.ok) return false;
+
+    const body = await res.json();
+    const role = body?.data?.user?.role;
+    return role === 'ADMIN' || role === 'MANAGER';
+  } catch {
+    return false;
+  }
+}
+
+export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  if (ADMIN_PATH_RE.test(pathname) && pathname !== ADMIN_LOGIN_PATH) {
+    const cookieHeader = request.headers.get('cookie') || '';
+    const authenticated = await isAdminAuthenticated(cookieHeader);
+
+    if (!authenticated) {
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = ADMIN_LOGIN_PATH;
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
   return NextResponse.next();
 }
 
