@@ -39,3 +39,10 @@ export const restrictTo = (...roles) => {
     next();
   };
 };
+
+export const preventPrivilegeEscalation = (req, res, next) => {
+  if (req.user.role !== 'ADMIN' && req.body.role) {
+    delete req.body.role;
+  }
+  next();
+};
