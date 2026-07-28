@@ -17,7 +17,7 @@ if (!jwtRefreshSecret || jwtRefreshSecret === jwtSecret) {
 
 export const config = {
   port: process.env.PORT || 5000,
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv: process.env.NODE_ENV || 'production',
   clientUrl: clientUrlRaw,
   clientOrigins,
   jwtSecret,
