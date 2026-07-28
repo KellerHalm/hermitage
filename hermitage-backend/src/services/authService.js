@@ -121,7 +121,14 @@ export const refreshUserToken = async (refreshToken) => {
   });
 
   if (!stored) {
-    throw new AppError('Refresh token not found (already used or revoked)', 401);
+    // Токен уже был использован или отозван — это сигнал о краже токена.
+    // Отзываем ВСЕ refresh-токены пользователя (всю «семью»),
+    // чтобы злоумышленник с украденным токеном и жертва были вынуждены
+    // заново пройти аутентификацию. (RFC 6749 / OWASP)
+    if (decoded?.id) {
+      await revokeAllUserTokens(decoded.id);
+    }
+    throw new AppError('Refresh token reuse detected. All sessions revoked — please log in again.', 401);
   }
 
   if (stored.expiresAt < new Date()) {

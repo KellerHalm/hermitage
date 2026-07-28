@@ -37,20 +37,116 @@ const createStorage = (subfolder, prefix) =>
     },
   });
 
-export const uploadProductFiles = multer({
+/**
+ * Проверка magic bytes (сигнатур) реального содержимого файла.
+ * Клиентский MIME-тип и расширение тривиально подделываются, поэтому
+ * полагаться только на них небезопасно. Здесь сверяем первые байты файла
+ * с известными сигнатурами поддерживаемых форматов.
+ *
+ * @param {string} filepath — путь к сохранённому файлу
+ * @returns {boolean} true, если сигнатура совпадает с допустимым форматом
+ */
+const verifyMagicBytes = (filepath) => {
+  let fd;
+  try {
+    // Достаточно прочитать первые 16 байт: все сигнатуры лежат в этом диапазоне
+    fd = fs.openSync(filepath, 'r');
+    const header = Buffer.alloc(16);
+    const bytesRead = fs.readSync(fd, header, 0, 16, 0);
+
+    if (bytesRead < 12) return false;
+
+    // JPEG: FF D8 FF
+    if (header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) return true;
+    // PNG: 89 50 4E 47 0D 0A 1A 0A
+    if (
+      header[0] === 0x89 && header[1] === 0x50 && header[2] === 0x4e && header[3] === 0x47 &&
+      header[4] === 0x0d && header[5] === 0x0a && header[6] === 0x1a && header[7] === 0x0a
+    ) return true;
+    // GIF: "GIF87a" или "GIF89a"
+    if (
+      header[0] === 0x47 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x38 &&
+      (header[4] === 0x37 || header[4] === 0x39) && header[5] === 0x61
+    ) return true;
+    // WebP: "RIFF" .... "WEBP"
+    if (
+      header[0] === 0x52 && header[1] === 0x49 && header[2] === 0x46 && header[3] === 0x46 &&
+      header[8] === 0x57 && header[9] === 0x45 && header[10] === 0x42 && header[11] === 0x50
+    ) return true;
+    // AVIF: ftyp box со брэндом avif/avis/mif1 в смещениях 4..11
+    if (
+      header[4] === 0x66 && header[5] === 0x74 && header[6] === 0x79 && header[7] === 0x70 &&
+      ((header[8] === 0x61 && header[9] === 0x76 && header[10] === 0x69 && header[11] === 0x66) || // avif
+       (header[8] === 0x61 && header[9] === 0x76 && header[10] === 0x69 && header[11] === 0x73) || // avis
+       (header[8] === 0x6d && header[9] === 0x69 && header[10] === 0x66 && header[11] === 0x31))   // mif1
+    ) return true;
+
+    return false;
+  } catch {
+    return false;
+  } finally {
+    if (fd !== undefined) {
+      try { fs.closeSync(fd); } catch { /* ignore */ }
+    }
+  }
+};
+
+/**
+ * Обёртка над multer, которая после приёма файлов проверяет их реальные
+ * сигнатуры (magic bytes) и удаляет те, чьё содержимое не соответствует
+ * заявленному типу. Защищает от загрузки маскируемых под изображения файлов.
+ * Сохраняет API multer: возвращаемый объект имеет методы .array()/.single()/.fields().
+ */
+const withMagicByteValidation = (multerInstance) => {
+  const validateFiles = (req, res, next) => {
+    const files = req.files && req.files.length
+      ? req.files
+      : (req.file ? [req.file] : []);
+
+    const invalid = files.find((f) => !verifyMagicBytes(f.path));
+    if (invalid) {
+      // Удаляем все файлы текущей загрузки, чтобы не оставлять мусор
+      for (const f of files) {
+        fs.rm(f.path, { force: true }, () => {});
+      }
+      // Очищаем req.files/req.file, чтобы контроллер не ссылался на удалённое
+      req.files = undefined;
+      req.file = undefined;
+      return next(new AppError('File content does not match an allowed image type. Possible spoofed upload.', 400));
+    }
+    next();
+  };
+
+  const wrap = (method) => (...args) => (req, res, next) => {
+    method.apply(multerInstance, [...args, (err) => {
+      if (err) return next(err);
+      validateFiles(req, res, next);
+    }]);
+  };
+
+  return {
+    array: wrap(multerInstance.array),
+    single: wrap(multerInstance.single),
+    fields: wrap(multerInstance.fields),
+    any: wrap(multerInstance.any),
+    none: multerInstance.none.bind(multerInstance),
+  };
+};
+
+export const uploadProductFiles = withMagicByteValidation(multer({
   storage: createStorage('products', 'product'),
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 },
-});
+}));
 
-export const uploadCategoryFiles = multer({
+export const uploadCategoryFiles = withMagicByteValidation(multer({
   storage: createStorage('categories', 'category'),
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 },
-});
+}));
 
-export const uploadCountryFiles = multer({
+export const uploadCountryFiles = withMagicByteValidation(multer({
   storage: createStorage('countries', 'country'),
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 },
-});
+}));
