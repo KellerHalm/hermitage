@@ -60,27 +60,45 @@ fi
 
 echo -e "${GREEN}✓ .env validation passed${NC}"
 
-# 3. Stop old containers
+# 3. Generate self-signed SSL certificate if not present
+SSL_DIR="./nginx/ssl"
+if [ ! -f "$SSL_DIR/fullchain.pem" ] || [ ! -f "$SSL_DIR/privkey.pem" ]; then
+    echo ""
+    echo -e "${YELLOW}SSL certificates not found. Generating self-signed certificate...${NC}"
+    mkdir -p "$SSL_DIR"
+    openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+        -keyout "$SSL_DIR/privkey.pem" \
+        -out "$SSL_DIR/fullchain.pem" \
+        -subj "/C=RU/ST=Local/L=Local/O=Hermitage/CN=${HOST_IP}" \
+        2>/dev/null
+    chmod 600 "$SSL_DIR/privkey.pem"
+    echo -e "${GREEN}✓ Self-signed SSL certificate generated (valid 365 days)${NC}"
+    echo ""
+    echo "To get a trusted certificate, run:"
+    echo "  certbot certonly --standalone -d YOUR_DOMAIN"
+fi
+
+# 4. Stop old containers
 echo ""
 echo "Stopping existing containers..."
 docker compose down 2>/dev/null || true
 
-# 4. Build and start
+# 5. Build and start
 echo ""
 echo "Building and starting services (this may take 5-15 minutes on first run)..."
 docker compose up -d --build
 
-# 5. Wait for database
+# 6. Wait for database
 echo ""
 echo "Waiting for database to be ready..."
 sleep 10
 
-# 6. Apply migrations
+# 7. Apply migrations
 echo ""
 echo "Applying database migrations..."
 docker compose exec -T backend npx prisma migrate deploy 2>/dev/null || echo "Note: Migrations may have already been applied."
 
-# 7. Done
+# 8. Done
 HOST_URL="https://${HOST_IP}"
 API_URL="https://${HOST_IP}/api"
 
