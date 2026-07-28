@@ -9,3 +9,5 @@ README.md
 uploads/*
 !uploads/images
 src/generated
+server.log
+*.log

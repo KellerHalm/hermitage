@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Admin-only user management.
 router.use(protect);
-router.use(restrictTo('ADMIN'));
+router.use(restrictTo('ADMIN', 'MANAGER'));
 
 router.get('/', userController.getAllUsers);
 router.get('/:id', userController.getUserById);

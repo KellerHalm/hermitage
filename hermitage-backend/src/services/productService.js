@@ -299,7 +299,17 @@ export const updateProduct = async (id, data, files) => {
     try {
       const parsed = JSON.parse(data.deleteImageIds);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        deleteImageIds = parsed;
+        const ownedImages = await prisma.productImage.findMany({
+          where: {
+            id: { in: parsed },
+            productId: id,
+          },
+          select: { id: true },
+        });
+        const validIds = ownedImages.map((img) => img.id);
+        if (validIds.length > 0) {
+          deleteImageIds = validIds;
+        }
       }
     } catch { /* ignore invalid JSON */ }
   }
