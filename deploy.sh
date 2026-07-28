@@ -104,6 +104,14 @@ if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "YOUR_DOMAIN" ] && command -v certbot &>/d
     }
 fi
 
+# 3c. Install daily database backup cron job
+echo ""
+echo -e "${YELLOW}Installing daily database backup cron job (02:30)...${NC}"
+chmod +x ./backup-db.sh
+BACKUP_CRON="30 2 * * * /opt/hermitage/backup-db.sh >> /var/log/hermitage-backup.log 2>&1"
+(crontab -l 2>/dev/null | grep -v 'backup-db.sh'; echo "$BACKUP_CRON") | crontab -
+echo -e "${GREEN}✓ Daily backup cron job installed (keeps 30 days)${NC}"
+
 # 4. Stop old containers
 echo ""
 echo "Stopping existing containers..."
@@ -137,3 +145,5 @@ echo "Useful commands:"
 echo "  docker compose logs -f          # View logs"
 echo "  docker compose down              # Stop all"
 echo "  docker compose restart backend   # Restart backend"
+echo "  ./backup-db.sh                   # Manual database backup"
+echo "  ls backups/                      # List backups"

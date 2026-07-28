@@ -60,7 +60,12 @@ app.use(
 if (config.nodeEnv === 'development') {
   app.use(morgan('dev'));
 } else {
-  app.use(morgan('combined'));
+  morgan.token('sanitized-url', (req) => {
+    const url = req.originalUrl || req.url;
+    const queryIndex = url.indexOf('?');
+    return queryIndex > -1 ? url.substring(0, queryIndex) : url;
+  });
+  app.use(morgan(':method :sanitized-url :status :res[content-length] - :response-time ms'));
 }
 
 const limiter = rateLimit({
