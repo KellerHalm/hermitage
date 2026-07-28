@@ -2858,6 +2858,10 @@ border-spacing: 0;
     gap: 16px !important;
   }
 
+  .admin-header {
+    padding-left: 44px !important;
+  }
+
   .admin-header h1 {
     font-size: 24px !important;
   }
@@ -2889,6 +2893,10 @@ border-spacing: 0;
 @media (max-width: 480px) {
   .admin-content {
     padding: 12px !important;
+  }
+
+  .admin-header {
+    padding-left: 40px !important;
   }
 
   .admin-header h1 {
