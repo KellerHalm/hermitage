@@ -165,6 +165,11 @@ export const updateUser = async (id, data) => {
   }
 
   if (data.password) {
+    const user = await prisma.user.findUnique({ where: { id } });
+    const isMatch = await bcrypt.compare(data.currentPassword, user.password);
+    if (!isMatch) {
+      throw new AppError('Current password is incorrect', 400);
+    }
     updateData.password = await bcrypt.hash(data.password, 12);
   }
 

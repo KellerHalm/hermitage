@@ -2288,6 +2288,26 @@ border-spacing: 0;
   display: block;
 }
 
+.password-change-section {
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--white);
+}
+
+.password-change-title {
+  font-family: var(--font-heading);
+  font-size: 1.2rem;
+  margin: 0 0 16px;
+}
+
+.password-change-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
 /* МОБИЛЬНОЕ МЕНЮ КАТЕГОРИЙ */
 .categories-menu-toggle {
   display: none;

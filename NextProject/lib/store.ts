@@ -566,7 +566,7 @@ export const Store = {
     await syncUserData();
     return user;
   },
-  async updateProfile(payload: { firstName: string; lastName: string; phone: string; email?: string; password?: string }) {
+  async updateProfile(payload: { firstName: string; lastName: string; phone: string; email?: string; password?: string; currentPassword?: string }) {
     const response = await api.updateMe('', payload);
     const user = normalizeUser(response?.data?.user);
     setCurrentUser(user);

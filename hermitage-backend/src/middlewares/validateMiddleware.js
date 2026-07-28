@@ -39,6 +39,11 @@ export const schemas = {
     phone: Joi.string().max(20).allow('', null),
     email: Joi.string().email().max(255).optional(),
     password: Joi.string().min(8).max(128).optional(),
+    currentPassword: Joi.string().min(8).max(128).when('password', {
+      is: Joi.exist(),
+      then: Joi.required(),
+      otherwise: Joi.forbidden(),
+    }),
   }).min(1),
 
   createOrder: Joi.object({

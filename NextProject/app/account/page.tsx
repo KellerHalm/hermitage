@@ -19,6 +19,8 @@ export default function AccountPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [orderFilter, setOrderFilter] = useState<string>('');
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     const tabParam = searchParams.get('tab');
@@ -139,6 +141,37 @@ export default function AccountPage() {
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    const newPassword = String(form.get('newPassword') || '');
+    const confirmPassword = String(form.get('confirmPassword') || '');
+    const currentPassword = String(form.get('currentPassword') || '');
+
+    if (newPassword !== confirmPassword) {
+      setToast({ message: 'Новые пароли не совпадают', type: 'error' });
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await Store.updateProfile({
+        firstName: user.firstName,
+        lastName: user.lastName,
+        phone: user.phone,
+        email: user.email,
+        password: newPassword,
+        currentPassword,
+      });
+      setShowPasswordForm(false);
+      setToast({ message: 'Пароль изменён', type: 'success' });
+    } catch (err) {
+      setToast({ message: err instanceof Error ? err.message : 'Не удалось изменить пароль', type: 'error' });
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
   return (
     <>
       <Header />
@@ -228,33 +261,67 @@ export default function AccountPage() {
             </div>
 
             {activeTab === 'profile' && (
-              <form onSubmit={handleProfileUpdate} className="checkout-form" style={{ maxWidth: 480 }}>
-                <div className="form-group">
-                  <label>Имя</label>
-                  <input type="text" name="firstName" defaultValue={user?.firstName || ''} required />
-                </div>
-                <div className="form-group">
-                  <label>Фамилия</label>
-                  <input type="text" name="lastName" defaultValue={user?.lastName || ''} required />
-                </div>
-                <div className="form-group">
-                  <label>Телефон</label>
-                  <input type="tel" name="phone" defaultValue={user?.phone || ''} required />
-                </div>
-                <div className="form-group">
-                  <label>Email</label>
-                  <input type="email" name="email" defaultValue={user?.email || ''} required />
-                </div>
-                <button type="submit" className="btn btn--primary btn--block" disabled={loading}>
-                  {loading ? 'Сохранение...' : 'Сохранить'}
-                </button>
-                <button type="button" className="btn btn--outline btn--block mt-2" onClick={handleLogout}>
-                  Выйти
-                </button>
-                <button type="button" className="btn btn--outline btn--block mt-2" onClick={handleDeleteAccount} disabled={loading} style={{ color: '#dc3545', borderColor: '#dc3545' }}>
-                  Удалить аккаунт
-                </button>
-              </form>
+              <>
+                <form onSubmit={handleProfileUpdate} className="checkout-form" style={{ maxWidth: 480 }}>
+                  <div className="form-group">
+                    <label>Имя</label>
+                    <input type="text" name="firstName" defaultValue={user?.firstName || ''} required />
+                  </div>
+                  <div className="form-group">
+                    <label>Фамилия</label>
+                    <input type="text" name="lastName" defaultValue={user?.lastName || ''} required />
+                  </div>
+                  <div className="form-group">
+                    <label>Телефон</label>
+                    <input type="tel" name="phone" defaultValue={user?.phone || ''} required />
+                  </div>
+                  <div className="form-group">
+                    <label>Email</label>
+                    <input type="email" name="email" defaultValue={user?.email || ''} required />
+                  </div>
+                  <button type="submit" className="btn btn--primary btn--block" disabled={loading}>
+                    {loading ? 'Сохранение...' : 'Сохранить'}
+                  </button>
+                  <button type="button" className="btn btn--outline btn--block mt-2" onClick={handleLogout}>
+                    Выйти
+                  </button>
+                  <button type="button" className="btn btn--outline btn--block mt-2" onClick={handleDeleteAccount} disabled={loading} style={{ color: '#dc3545', borderColor: '#dc3545' }}>
+                    Удалить аккаунт
+                  </button>
+                </form>
+
+                {!showPasswordForm ? (
+                  <button type="button" className="btn btn--outline btn--block mt-2" onClick={() => setShowPasswordForm(true)} style={{ maxWidth: 480 }}>
+                    Сменить пароль
+                  </button>
+                ) : (
+                  <div className="password-change-section" style={{ maxWidth: 480 }}>
+                    <h3 className="password-change-title">Смена пароля</h3>
+                    <form onSubmit={handlePasswordChange}>
+                      <div className="form-group">
+                        <label>Текущий пароль</label>
+                        <input type="password" name="currentPassword" required minLength={8} />
+                      </div>
+                      <div className="form-group">
+                        <label>Новый пароль</label>
+                        <input type="password" name="newPassword" required minLength={8} />
+                      </div>
+                      <div className="form-group">
+                        <label>Подтвердите новый пароль</label>
+                        <input type="password" name="confirmPassword" required minLength={8} />
+                      </div>
+                      <div className="password-change-actions">
+                        <button type="submit" className="btn btn--primary" disabled={passwordLoading}>
+                          {passwordLoading ? 'Сохранение...' : 'Сохранить пароль'}
+                        </button>
+                        <button type="button" className="btn btn--outline" onClick={() => setShowPasswordForm(false)} disabled={passwordLoading}>
+                          Отмена
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+              </>
             )}
 
             {activeTab === 'favorites' && (
