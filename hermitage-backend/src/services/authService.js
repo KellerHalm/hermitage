@@ -5,6 +5,7 @@ import prisma from '../config/prisma.js';
 import { config } from '../config/index.js';
 import AppError from '../utils/AppError.js';
 import { sendWelcomeEmail } from '../utils/email.js';
+import { recordFailedAttempt, clearAttempts, isLocked } from '../utils/loginAttempts.js';
 
 const signAccessToken = (id) => jwt.sign({ id }, config.jwtSecret, {
   expiresIn: config.jwtExpiresIn,
@@ -77,11 +78,24 @@ export const loginUser = async (email, password) => {
     throw new AppError('Please provide email and password', 400);
   }
 
+  const lockStatus = isLocked(email);
+  if (lockStatus.locked) {
+    const minutes = Math.ceil(lockStatus.remainingMs / 60000);
+    throw new AppError(`Account locked due to too many failed attempts. Try again in ${minutes} minute(s).`, 423);
+  }
+
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
+    const result = recordFailedAttempt(email);
+    if (result.locked) {
+      const minutes = Math.ceil(result.remainingMs / 60000);
+      throw new AppError(`Too many failed attempts. Account locked for ${minutes} minute(s).`, 423);
+    }
     throw new AppError('Incorrect email or password', 401);
   }
+
+  clearAttempts(email);
 
   const token = signAccessToken(user.id);
   const refreshToken = await createRefreshToken(user.id);

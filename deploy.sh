@@ -73,9 +73,35 @@ if [ ! -f "$SSL_DIR/fullchain.pem" ] || [ ! -f "$SSL_DIR/privkey.pem" ]; then
         2>/dev/null
     chmod 600 "$SSL_DIR/privkey.pem"
     echo -e "${GREEN}✓ Self-signed SSL certificate generated (valid 365 days)${NC}"
+fi
+
+# 3b. Try to obtain Let's Encrypt certificate if DOMAIN is set and certbot is available
+if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "YOUR_DOMAIN" ] && command -v certbot &>/dev/null; then
     echo ""
-    echo "To get a trusted certificate, run:"
-    echo "  certbot certonly --standalone -d YOUR_DOMAIN"
+    echo -e "${YELLOW}DOMAIN is set ($DOMAIN). Attempting Let's Encrypt...${NC}"
+
+    # Stop nginx temporarily so certbot can use port 80 for HTTP-01 challenge
+    docker compose stop nginx 2>/dev/null || true
+
+    certbot certonly --standalone -d "$DOMAIN" --non-interactive --agree-tos --email "admin@${DOMAIN}" 2>/dev/null && {
+        # Copy certificates to nginx ssl directory
+        mkdir -p "$SSL_DIR"
+        cp "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" "$SSL_DIR/fullchain.pem"
+        cp "/etc/letsencrypt/live/${DOMAIN}/privkey.pem" "$SSL_DIR/privkey.pem"
+        chmod 600 "$SSL_DIR/privkey.pem"
+        echo -e "${GREEN}✓ Let's Encrypt certificate obtained for ${DOMAIN}${NC}"
+
+        # Set up auto-renewal cron job
+        CRON_LINE="0 3 * * * certbot renew --quiet --post-hook 'cp /etc/letsencrypt/live/${DOMAIN}/fullchain.pem /opt/hermitage/nginx/ssl/ && cp /etc/letsencrypt/live/${DOMAIN}/privkey.pem /opt/hermitage/nginx/ssl/ && chmod 600 /opt/hermitage/nginx/ssl/privkey.pem' && cd /opt/hermitage && docker compose restart nginx >> /var/log/hermitage-certbot.log 2>&1"
+        (crontab -l 2>/dev/null | grep -v 'certbot renew'; echo "$CRON_LINE") | crontab -
+        echo -e "${GREEN}✓ Auto-renewal cron job installed (daily at 03:00)${NC}"
+    } || {
+        echo -e "${YELLOW}⚠ Let's Encrypt failed (no DNS record or port 80 blocked). Using self-signed certificate.${NC}"
+        echo "  To manually obtain a certificate later:"
+        echo "    1. Ensure DNS A-record points to this server for: ${DOMAIN}"
+        echo "    2. Ensure port 80 is open: ufw allow 80/tcp"
+        echo "    3. Run: certbot certonly --standalone -d ${DOMAIN}"
+    }
 fi
 
 # 4. Stop old containers
