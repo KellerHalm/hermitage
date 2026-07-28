@@ -245,8 +245,12 @@ const cartAuth = () => ({
 });
 
 const setCurrentUser = (user: User | null) => {
-  if (user) Storage.set(USER_KEY, user);
-  else Storage.remove(USER_KEY);
+  if (user) {
+    const safeUser = { ...user, role: undefined };
+    Storage.set(USER_KEY, safeUser);
+  } else {
+    Storage.remove(USER_KEY);
+  }
 };
 
 const clearUserData = () => {
@@ -476,9 +480,14 @@ export const Store = {
   getAdminOrders() {
     return Storage.get<Order[]>(ADMIN_ORDERS_KEY, []);
   },
-  isAdmin() {
-    const user = Store.user();
-    return user?.role === 'ADMIN' || user?.role === 'MANAGER';
+  async isAdmin() {
+    try {
+      const res = await api.verifyAdmin();
+      const role = res?.data?.user?.role;
+      return role === 'ADMIN' || role === 'MANAGER';
+    } catch {
+      return false;
+    }
   },
   async syncPublicData() {
     return syncPublicData();

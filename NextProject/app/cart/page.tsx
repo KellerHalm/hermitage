@@ -9,6 +9,7 @@ import { formatPrice, type Product } from '../../lib/data';
 import { Store } from '../../lib/store';
 import { useStoreData } from '@/lib/use-store-data';
 import { getProductUrl } from '@/lib/urls';
+import { validate } from '@/lib/validation';
 
 interface CartItem extends Product {
   qty: number;
@@ -82,6 +83,18 @@ export default function CartPage() {
       return;
     }
 
+    const errors = [
+      validate.name(formData.firstName, 'Имя'),
+      validate.name(formData.lastName, 'Фамилия'),
+      validate.phone(formData.phone),
+    ].filter(Boolean);
+    if (errors.length > 0) { showToast(errors[0]!, 'error'); return; }
+
+    if (formData.email) {
+      const emailError = validate.email(formData.email);
+      if (emailError) { showToast(emailError, 'error'); return; }
+    }
+
     const unavailable = items.filter((item) => item.inStock === false || item.stockQuantity === 0);
     if (unavailable.length > 0) {
       showToast(`Некоторые товары недоступны: ${unavailable.map((item) => item.name).join(', ')}`, 'error');
@@ -90,6 +103,16 @@ export default function CartPage() {
 
     if (formData.deliveryType === 'delivery' && !formData.address.trim()) {
       showToast('Укажите адрес доставки', 'error');
+      return;
+    }
+
+    if (formData.deliveryType === 'delivery' && formData.address.length > 500) {
+      showToast('Адрес доставки: максимум 500 символов', 'error');
+      return;
+    }
+
+    if (formData.comment.length > 1000) {
+      showToast('Комментарий: максимум 1000 символов', 'error');
       return;
     }
 

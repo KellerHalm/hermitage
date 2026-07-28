@@ -9,6 +9,7 @@ import BackButton from '../components/BackButton';
 import ProductCard from '../components/ProductCard';
 import Toast from '../components/Toast';
 import { Store } from '@/lib/store';
+import { validate } from '@/lib/validation';
 
 export default function AccountPage() {
   const searchParams = useSearchParams();
@@ -57,10 +58,18 @@ export default function AccountPage() {
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const email = String(form.get('email') || '');
+    const password = String(form.get('password') || '');
+
+    const emailError = validate.email(email);
+    if (emailError) { setToast({ message: emailError, type: 'error' }); return; }
+    const passwordError = validate.password(password);
+    if (passwordError) { setToast({ message: passwordError, type: 'error' }); return; }
+
     setLoading(true);
 
     try {
-      const nextUser = await Store.login(String(form.get('email') || ''), String(form.get('password') || ''));
+      const nextUser = await Store.login(email, password);
       setUser(nextUser);
       setOrders(Store.orders());
       setActiveTab('profile');
@@ -75,16 +84,25 @@ export default function AccountPage() {
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const firstName = String(form.get('firstName') || '');
+    const lastName = String(form.get('lastName') || '');
+    const phone = String(form.get('phone') || '');
+    const email = String(form.get('email') || '');
+    const password = String(form.get('password') || '');
+
+    const errors = [
+      validate.name(firstName, 'Имя'),
+      validate.name(lastName, 'Фамилия'),
+      validate.phone(phone),
+      validate.email(email),
+      validate.password(password),
+    ].filter(Boolean);
+    if (errors.length > 0) { setToast({ message: errors[0]!, type: 'error' }); return; }
+
     setLoading(true);
 
     try {
-      const nextUser = await Store.register({
-        firstName: String(form.get('firstName') || ''),
-        lastName: String(form.get('lastName') || ''),
-        phone: String(form.get('phone') || ''),
-        email: String(form.get('email') || ''),
-        password: String(form.get('password') || ''),
-      });
+      const nextUser = await Store.register({ firstName, lastName, phone, email, password });
       setUser(nextUser);
       setOrders(Store.orders());
       setActiveTab('profile');
@@ -99,15 +117,23 @@ export default function AccountPage() {
   const handleProfileUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const firstName = String(form.get('firstName') || '');
+    const lastName = String(form.get('lastName') || '');
+    const phone = String(form.get('phone') || '');
+    const email = String(form.get('email') || '');
+
+    const errors = [
+      validate.name(firstName, 'Имя'),
+      validate.name(lastName, 'Фамилия'),
+      validate.phone(phone),
+      validate.email(email),
+    ].filter(Boolean);
+    if (errors.length > 0) { setToast({ message: errors[0]!, type: 'error' }); return; }
+
     setLoading(true);
 
     try {
-      const nextUser = await Store.updateProfile({
-        firstName: String(form.get('firstName') || ''),
-        lastName: String(form.get('lastName') || ''),
-        phone: String(form.get('phone') || ''),
-        email: String(form.get('email') || ''),
-      });
+      const nextUser = await Store.updateProfile({ firstName, lastName, phone, email });
       setUser(nextUser);
       setToast({ message: 'Данные сохранены', type: 'success' });
     } catch (err) {
@@ -144,9 +170,14 @@ export default function AccountPage() {
   const handlePasswordChange = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const form = new FormData(e.currentTarget);
+    const currentPassword = String(form.get('currentPassword') || '');
     const newPassword = String(form.get('newPassword') || '');
     const confirmPassword = String(form.get('confirmPassword') || '');
-    const currentPassword = String(form.get('currentPassword') || '');
+
+    const currentPasswordError = validate.password(currentPassword);
+    if (currentPasswordError) { setToast({ message: `Текущий пароль: ${currentPasswordError}`, type: 'error' }); return; }
+    const newPasswordError = validate.password(newPassword);
+    if (newPasswordError) { setToast({ message: `Новый пароль: ${newPasswordError}`, type: 'error' }); return; }
 
     if (newPassword !== confirmPassword) {
       setToast({ message: 'Новые пароли не совпадают', type: 'error' });

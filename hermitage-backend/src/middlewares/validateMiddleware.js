@@ -122,4 +122,36 @@ export const schemas = {
   updateOrderStatus: Joi.object({
     status: Joi.string().valid('PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED').required(),
   }),
+
+  createBrand: Joi.object({
+    name: Joi.string().max(200).required(),
+    country: Joi.string().max(100).allow('', null),
+  }),
+
+  updateBrand: Joi.object({
+    name: Joi.string().max(200),
+    country: Joi.string().max(100).allow('', null),
+  }).min(1),
+
+  createCategory: Joi.object({
+    name: Joi.string().max(200).required(),
+    parentId: Joi.string().uuid().allow(null, ''),
+    image: Joi.string().max(500).allow('', null),
+  }),
+
+  updateCategory: Joi.object({
+    name: Joi.string().max(200),
+    parentId: Joi.string().uuid().allow(null, ''),
+    image: Joi.string().max(500).allow('', null),
+  }).min(1),
+
+  createCountry: Joi.object({
+    name: Joi.string().max(200).required(),
+    image: Joi.string().max(500).allow('', null),
+  }),
+
+  updateCountry: Joi.object({
+    name: Joi.string().max(200),
+    image: Joi.string().max(500).allow('', null),
+  }).min(1),
 };

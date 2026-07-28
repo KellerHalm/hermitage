@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Store } from '@/lib/store';
+import { validate } from '@/lib/validation';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -16,11 +17,17 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
+    const emailError = validate.email(email);
+    if (emailError) { setError(emailError); setLoading(false); return; }
+    const passwordError = validate.password(password);
+    if (passwordError) { setError(passwordError); setLoading(false); return; }
+
     try {
-      const user = await Store.login(email, password);
-      if (user.role !== 'ADMIN' && user.role !== 'MANAGER') {
+      await Store.login(email, password);
+      const isAdmin = await Store.isAdmin();
+      if (!isAdmin) {
         Store.logout();
-        setError('Доступ разрешён только администраторам и менеджерам');
+        setError('Неверный email или пароль');
         return;
       }
       router.push('/admin');

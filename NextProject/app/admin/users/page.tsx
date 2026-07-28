@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Store } from '@/lib/store';
 import { showToast } from '@/lib/toast';
+import { validate } from '@/lib/validation';
 
 const ROLE_OPTIONS = [
   { value: 'ADMIN', label: 'Администратор' },
@@ -68,13 +69,21 @@ export default function UsersPage() {
     });
 
   const handleCreate = async () => {
-    if (!formData.email.trim()) {
-      showToast('Введите email', 'error');
-      return;
+    const emailError = validate.email(formData.email);
+    if (emailError) { showToast(emailError, 'error'); return; }
+    const passwordError = validate.password(formData.password);
+    if (passwordError) { showToast(`Пароль: ${passwordError}`, 'error'); return; }
+    if (formData.firstName) {
+      const nameError = validate.name(formData.firstName, 'Имя');
+      if (nameError) { showToast(nameError, 'error'); return; }
     }
-    if (!formData.password.trim()) {
-      showToast('Введите пароль', 'error');
-      return;
+    if (formData.lastName) {
+      const nameError = validate.name(formData.lastName, 'Фамилия');
+      if (nameError) { showToast(nameError, 'error'); return; }
+    }
+    if (formData.phone) {
+      const phoneError = validate.phone(formData.phone);
+      if (phoneError) { showToast(phoneError, 'error'); return; }
     }
 
     try {

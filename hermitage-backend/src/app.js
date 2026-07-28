@@ -11,6 +11,7 @@ import { config } from './config/index.js';
 import prisma from './config/prisma.js';
 import AppError from './utils/AppError.js';
 import { errorHandler } from './middlewares/errorHandler.js';
+import { csrfProtection } from './middlewares/csrfMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import brandRoutes from './routes/brandRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
@@ -113,6 +114,8 @@ app.use((req, res, next) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+app.use(csrfProtection);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/brands', brandRoutes);

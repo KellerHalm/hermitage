@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Store } from '@/lib/store';
 import { showToast } from '@/lib/toast';
+import { validate } from '@/lib/validation';
 
 const AVAILABILITY_OPTIONS = [
   { value: 'IN_STOCK', label: 'В наличии' },
@@ -141,21 +142,29 @@ export default function ProductsPage() {
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim()) {
-      showToast('Введите название товара', 'error');
-      return;
+    const nameError = validate.name(formData.name, 'Название');
+    if (nameError) { showToast(nameError, 'error'); return; }
+    if (!formData.category) { showToast('Выберите категорию', 'error'); return; }
+    if (!formData.brandId) { showToast('Выберите бренд', 'error'); return; }
+    const priceError = validate.price(formData.price);
+    if (priceError) { showToast(priceError, 'error'); return; }
+    if (formData.oldPrice) {
+      const oldPriceError = validate.price(formData.oldPrice);
+      if (oldPriceError) { showToast(`Старая цена: ${oldPriceError}`, 'error'); return; }
     }
-    if (!formData.category) {
-      showToast('Выберите категорию', 'error');
-      return;
-    }
-    if (!formData.brandId) {
-      showToast('Выберите бренд', 'error');
-      return;
-    }
-    if (Number(formData.price) <= 0) {
-      showToast('Цена должна быть больше 0', 'error');
-      return;
+    const descError = validate.maxLength(formData.description, 10000, 'Описание');
+    if (descError) { showToast(descError, 'error'); return; }
+    const skuError = validate.maxLength(formData.sku, 100, 'Артикул');
+    if (skuError) { showToast(skuError, 'error'); return; }
+    const sizesError = validate.maxLength(formData.sizes, 200, 'Размеры');
+    if (sizesError) { showToast(sizesError, 'error'); return; }
+    const materialError = validate.maxLength(formData.material, 200, 'Материал');
+    if (materialError) { showToast(materialError, 'error'); return; }
+    const colorError = validate.maxLength(formData.color, 100, 'Цвет');
+    if (colorError) { showToast(colorError, 'error'); return; }
+    if (formData.stockQuantity !== '' && formData.stockQuantity !== null) {
+      const qtyError = validate.positiveInt(formData.stockQuantity);
+      if (qtyError) { showToast(`Количество: ${qtyError}`, 'error'); return; }
     }
 
     try {
