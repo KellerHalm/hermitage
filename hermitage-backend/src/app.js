@@ -11,7 +11,7 @@ import { config } from './config/index.js';
 import prisma from './config/prisma.js';
 import AppError from './utils/AppError.js';
 import { errorHandler } from './middlewares/errorHandler.js';
-import { csrfProtection } from './middlewares/csrfMiddleware.js';
+import { csrfProtection, setCsrfCookie } from './middlewares/csrfMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import brandRoutes from './routes/brandRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
@@ -84,6 +84,7 @@ const authLimiter = rateLimit({
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/refresh', authLimiter);
+app.use('/api/auth/me', authLimiter);
 
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
@@ -114,6 +115,11 @@ app.use((req, res, next) => {
 });
 
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
+
+app.get('/api/csrf-token', (req, res) => {
+  const token = setCsrfCookie(res);
+  res.status(200).json({ csrfToken: token });
+});
 
 app.use(csrfProtection);
 

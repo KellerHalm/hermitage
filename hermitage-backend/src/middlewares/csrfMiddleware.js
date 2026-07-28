@@ -1,37 +1,58 @@
+import crypto from 'crypto';
 import { config } from '../config/index.js';
 import AppError from '../utils/AppError.js';
 
+const CSRF_COOKIE = 'csrf_token';
+const CSRF_HEADER = 'x-csrf-token';
+const CSRF_SECRET = config.jwtSecret;
+
 const isStateChanging = (method) => ['POST', 'PATCH', 'DELETE', 'PUT'].includes(method);
+
+export const generateCsrfToken = () => {
+  return crypto.randomBytes(32).toString('hex');
+};
+
+export const signCsrfToken = (token) => {
+  const signature = crypto.createHmac('sha256', CSRF_SECRET).update(token).digest('hex');
+  return `${token}.${signature}`;
+};
+
+export const verifyCsrfToken = (signed, token) => {
+  const expected = signCsrfToken(token);
+  return crypto.timingSafeEqual(Buffer.from(signed), Buffer.from(expected));
+};
+
+export const setCsrfCookie = (res) => {
+  const token = generateCsrfToken();
+  const signed = signCsrfToken(token);
+  res.cookie(CSRF_COOKIE, signed, {
+    httpOnly: false,
+    secure: config.cookieSecure,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 1000, // 1 hour
+  });
+  return token;
+};
 
 export const csrfProtection = (req, res, next) => {
   if (!isStateChanging(req.method)) {
     return next();
   }
 
-  const origin = req.headers.origin;
-  const referer = req.headers.referer;
+  const cookieToken = req.cookies?.[CSRF_COOKIE];
+  const headerToken = req.headers[CSRF_HEADER];
 
-  const source = origin || referer;
-  if (!source) {
-    return next(new AppError('Missing Origin/Referer header', 403));
+  if (!cookieToken || !headerToken) {
+    return next(new AppError('CSRF token missing', 403));
   }
 
-  let sourceHost;
   try {
-    sourceHost = new URL(source).hostname;
-  } catch {
-    return next(new AppError('Invalid Origin/Referer header', 403));
-  }
-
-  const allowed = config.clientOrigins.some((allowedOrigin) => {
-    try {
-      return new URL(allowedOrigin).hostname === sourceHost;
-    } catch {
-      return allowedOrigin === sourceHost;
+    const [tokenPart] = cookieToken.split('.');
+    if (!verifyCsrfToken(cookieToken, headerToken) || tokenPart !== headerToken) {
+      return next(new AppError('CSRF validation failed', 403));
     }
-  });
-
-  if (!allowed) {
+  } catch {
     return next(new AppError('CSRF validation failed', 403));
   }
 

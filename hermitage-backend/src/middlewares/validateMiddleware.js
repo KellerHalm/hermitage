@@ -1,6 +1,9 @@
 import Joi from 'joi';
 import AppError from '../utils/AppError.js';
 
+const passwordPattern = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,128}$/;
+const passwordMessage = 'Password must contain at least one uppercase letter, one lowercase letter, and one number';
+
 export const validate = (schema, source = 'body') => {
   return (req, res, next) => {
     const data = req[source];
@@ -22,7 +25,9 @@ export const validate = (schema, source = 'body') => {
 export const schemas = {
   register: Joi.object({
     email: Joi.string().email().max(255).required(),
-    password: Joi.string().min(8).max(128).required(),
+    password: Joi.string().pattern(passwordPattern).required().messages({
+      'string.pattern.base': passwordMessage,
+    }),
     firstName: Joi.string().max(100).allow('', null),
     lastName: Joi.string().max(100).allow('', null),
     phone: Joi.string().max(20).allow('', null),
@@ -38,7 +43,9 @@ export const schemas = {
     lastName: Joi.string().max(100).allow('', null),
     phone: Joi.string().max(20).allow('', null),
     email: Joi.string().email().max(255).optional(),
-    password: Joi.string().min(8).max(128).optional(),
+    password: Joi.string().pattern(passwordPattern).optional().messages({
+      'string.pattern.base': passwordMessage,
+    }),
     currentPassword: Joi.string().min(8).max(128).when('password', {
       is: Joi.exist(),
       then: Joi.required(),
@@ -103,7 +110,9 @@ export const schemas = {
 
   createUser: Joi.object({
     email: Joi.string().email().max(255).required(),
-    password: Joi.string().min(8).max(128).required(),
+    password: Joi.string().pattern(passwordPattern).required().messages({
+      'string.pattern.base': passwordMessage,
+    }),
     firstName: Joi.string().max(100).allow('', null),
     lastName: Joi.string().max(100).allow('', null),
     phone: Joi.string().max(20).allow('', null),
@@ -112,7 +121,9 @@ export const schemas = {
 
   updateUser: Joi.object({
     email: Joi.string().email().max(255),
-    password: Joi.string().min(8).max(128),
+    password: Joi.string().pattern(passwordPattern).messages({
+      'string.pattern.base': passwordMessage,
+    }),
     firstName: Joi.string().max(100).allow('', null),
     lastName: Joi.string().max(100).allow('', null),
     phone: Joi.string().max(20).allow('', null),

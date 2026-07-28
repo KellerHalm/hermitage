@@ -1,4 +1,4 @@
-FROM node:20-alpine AS base
+FROM node:20.19-alpine AS base
 
 WORKDIR /app
 
@@ -13,14 +13,13 @@ RUN npx prisma generate
 
 COPY src ./src/
 
-RUN mkdir -p uploads/images
-
 # Фиксируем NODE_ENV=production, чтобы Express и errorHandler скрывали
 # стек-трейсы и подробности ошибок от клиентов. Без этого, если env забыли
 # выставить в runtime, errorHandler отдаёт полный stack в ответах.
 ENV NODE_ENV=production
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN mkdir -p uploads/images && chown appuser:appgroup uploads
 USER appuser
 
 EXPOSE 5000

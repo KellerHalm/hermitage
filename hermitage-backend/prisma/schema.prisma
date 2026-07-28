@@ -227,3 +227,15 @@ model RefreshToken {
   @@index([userId])
   @@index([expiresAt])
 }
+
+model LoginAttempt {
+  id           String   @id @default(uuid())
+  email        String
+  count        Int      @default(0)
+  lockedUntil  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([email])
+  @@unique([email])
+}
