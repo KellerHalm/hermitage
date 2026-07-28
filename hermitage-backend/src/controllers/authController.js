@@ -1,5 +1,6 @@
 ﻿import * as authService from '../services/authService.js';
 import { config } from '../config/index.js';
+import AppError from '../utils/AppError.js';
 
 const parseDuration = (duration) => {
   const match = duration.match(/^(\d+)([smhd])$/);
@@ -66,7 +67,10 @@ export const login = async (req, res, next) => {
 
 export const refresh = async (req, res, next) => {
   try {
-    const incomingRefreshToken = req.cookies?.[REFRESH_COOKIE] || req.body?.refreshToken;
+    const incomingRefreshToken = req.cookies?.[REFRESH_COOKIE];
+    if (!incomingRefreshToken) {
+      return next(new AppError('Refresh token required', 401));
+    }
     const { token, refreshToken } = await authService.refreshUserToken(incomingRefreshToken);
     setTokenCookies(res, token, refreshToken);
     res.status(200).json({
