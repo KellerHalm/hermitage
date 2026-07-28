@@ -26,7 +26,7 @@ export const setCsrfCookie = (res) => {
   const token = generateCsrfToken();
   const signed = signCsrfToken(token);
   res.cookie(CSRF_COOKIE, signed, {
-    httpOnly: false,
+    httpOnly: true,
     secure: config.cookieSecure,
     sameSite: 'lax',
     path: '/',

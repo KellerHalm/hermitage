@@ -86,6 +86,12 @@ app.use('/api/auth/register', authLimiter);
 app.use('/api/auth/refresh', authLimiter);
 app.use('/api/auth/me', authLimiter);
 
+const csrfLimiter = rateLimit({
+  max: 30,
+  windowMs: 15 * 60 * 1000,
+  message: 'Too many CSRF token requests, please try again later!',
+});
+
 app.use(express.json({ limit: '10kb' }));
 app.use(cookieParser());
 
@@ -116,7 +122,7 @@ app.use((req, res, next) => {
 
 app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
-app.get('/api/csrf-token', (req, res) => {
+app.get('/api/csrf-token', csrfLimiter, (req, res) => {
   const token = setCsrfCookie(res);
   res.status(200).json({ csrfToken: token });
 });

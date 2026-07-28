@@ -1,6 +1,8 @@
 const DEFAULT_PUBLIC_API_BASE = '/api';
 const DEFAULT_INTERNAL_API_BASE = 'http://backend:5000/api';
 
+let csrfToken: string | null = null;
+
 const getApiBase = () => {
   if (typeof window === 'undefined') {
     return process.env.INTERNAL_API_BASE_URL
@@ -32,7 +34,26 @@ const buildHeaders = (options: RequestOptions) => {
     headers.set('Content-Type', 'application/json');
   }
 
+  const isStateChanging = options.method && ['POST', 'PATCH', 'DELETE', 'PUT'].includes(options.method);
+  if (isStateChanging && csrfToken) {
+    headers.set('x-csrf-token', csrfToken);
+  }
+
   return headers;
+};
+
+export const fetchCsrfToken = async () => {
+  if (typeof window === 'undefined') return;
+  try {
+    const apiBase = getApiBase();
+    const res = await fetch(`${apiBase}/csrf-token`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      csrfToken = data.csrfToken || null;
+    }
+  } catch {
+    csrfToken = null;
+  }
 };
 
 let isRefreshing = false;
@@ -49,9 +70,11 @@ const attemptRefresh = async (): Promise<void> => {
   refreshPromise = (async () => {
     try {
       const apiBase = getApiBase();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (csrfToken) headers['x-csrf-token'] = csrfToken;
       const response = await fetch(`${apiBase}/auth/refresh`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         credentials: 'include',
         body: JSON.stringify({}),
       });
@@ -86,6 +109,13 @@ async function request<T>(path: string, options: RequestOptions = {}, retryOn401
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('auth:logout'));
       }
+    }
+  }
+
+  if (response.status === 403) {
+    await fetchCsrfToken();
+    if (csrfToken) {
+      return request<T>(path, options, false);
     }
   }
 
