@@ -56,14 +56,15 @@ services:
       context: ./NextProject
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_BASE_URL: http://${HOST_IP:-localhost}:5000/api
+        NEXT_PUBLIC_API_BASE_URL: /api
         NEXT_PUBLIC_SITE_URL: https://${HOST_IP:-localhost}
     restart: unless-stopped
     depends_on:
       backend:
         condition: service_started
     environment:
-      NEXT_PUBLIC_API_BASE_URL: http://${HOST_IP:-localhost}:5000/api
+      NEXT_PUBLIC_API_BASE_URL: /api
+      INTERNAL_API_BASE_URL: http://backend:5000/api
       NEXT_PUBLIC_SITE_URL: https://${HOST_IP:-localhost}
     ports:
       - "127.0.0.1:3000:3000"

@@ -1,13 +1,6 @@
 import type { NextConfig } from "next";
 
-let apiHost = 'localhost';
-try {
-  if (process.env.NEXT_PUBLIC_API_BASE_URL) {
-    apiHost = new URL(process.env.NEXT_PUBLIC_API_BASE_URL).hostname;
-  }
-} catch {
-  // Fallback to localhost if URL is malformed
-}
+const backendUrl = (process.env.INTERNAL_API_BASE_URL || process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000').replace(/\/api\/?$/, '');
 
 const nextConfig: NextConfig = {
   images: {
@@ -20,17 +13,29 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'http',
-        hostname: apiHost,
+        hostname: 'localhost',
         pathname: '/uploads/**',
       },
       {
         protocol: 'https',
-        hostname: apiHost,
+        hostname: 'localhost',
         pathname: '/uploads/**',
       },
     ],
   },
   output: 'standalone',
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${backendUrl}/api/:path*`,
+      },
+      {
+        source: '/uploads/:path*',
+        destination: `${backendUrl}/uploads/:path*`,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

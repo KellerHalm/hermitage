@@ -1,5 +1,20 @@
-﻿const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
-const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '');
+const DEFAULT_PUBLIC_API_BASE = '/api';
+const DEFAULT_INTERNAL_API_BASE = 'http://backend:5000/api';
+
+const getApiBase = () => {
+  if (typeof window === 'undefined') {
+    return process.env.INTERNAL_API_BASE_URL
+      || process.env.NEXT_PUBLIC_API_BASE_URL
+      || DEFAULT_INTERNAL_API_BASE;
+  }
+
+  return process.env.NEXT_PUBLIC_API_BASE_URL || DEFAULT_PUBLIC_API_BASE;
+};
+
+const getApiOrigin = () => {
+  const apiBase = getApiBase();
+  return /^https?:\/\//i.test(apiBase) ? apiBase.replace(/\/api\/?$/, '') : '';
+};
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'DELETE';
 
@@ -33,7 +48,8 @@ const attemptRefresh = async (): Promise<void> => {
   isRefreshing = true;
   refreshPromise = (async () => {
     try {
-      const response = await fetch(`${API_BASE}/auth/refresh`, {
+      const apiBase = getApiBase();
+      const response = await fetch(`${apiBase}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -53,7 +69,8 @@ const attemptRefresh = async (): Promise<void> => {
 };
 
 async function request<T>(path: string, options: RequestOptions = {}, retryOn401 = true): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const apiBase = getApiBase();
+  const response = await fetch(`${apiBase}${path}`, {
     method: options.method || 'GET',
     headers: buildHeaders(options),
     body: options.body,
@@ -93,9 +110,10 @@ async function request<T>(path: string, options: RequestOptions = {}, retryOn401
 }
 
 export const buildAssetUrl = (value?: string | null) => {
-  if (!value) return `${API_ORIGIN}/uploads/images/product-fallback.svg`;
+  const apiOrigin = getApiOrigin();
+  if (!value) return `${apiOrigin}/uploads/images/product-fallback.svg`;
   if (/^https?:\/\//i.test(value)) return value;
-  return `${API_ORIGIN}${value.startsWith('/') ? value : `/${value}`}`;
+  return `${apiOrigin}${value.startsWith('/') ? value : `/${value}`}`;
 };
 
 type ProductQuery = {
@@ -131,7 +149,7 @@ const buildQuery = (params?: ProductQuery) => {
 const withAuth = (token?: string | null) => ({ token: token || null });
 
 export const api = {
-  origin: API_ORIGIN,
+  origin: getApiOrigin(),
   listProducts: (params?: ProductQuery) => request<any>(`/products${buildQuery(params)}`),
   listCategories: () => request<any>('/categories'),
   getCategoryBySlug: (slug: string) => request<any>(`/categories/slug/${slug}`),
@@ -142,7 +160,7 @@ export const api = {
   getSimilarProducts: (slug: string) => request<any>(`/products/${slug}/similar`),
   getBoughtTogetherProducts: (slug: string) => request<any>(`/products/${slug}/bought-together`),
   search: (q: string) => request<any>(`/search?q=${encodeURIComponent(q)}`),
-  login: (payload: { email: string; password: string }) => request<any>('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
+  login: (payload: { email: string; password: string }) => request<any>('/auth/login', { method: 'POST', body: JSON.stringify(payload) }, false),
   register: (payload: { email: string; password: string; firstName: string; lastName: string; phone: string }) => request<any>('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
   refresh: () => request<any>('/auth/refresh', { method: 'POST', body: JSON.stringify({}) }, false),
   logout: () => request<any>('/auth/logout', { method: 'POST', body: JSON.stringify({}) }, false),

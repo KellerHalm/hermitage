@@ -6,6 +6,21 @@ import { createOrderNotification } from './notificationService.js';
 
 const VALID_ORDER_STATUSES = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
 
+const normalizeItems = (items) => {
+  const merged = new Map();
+
+  for (const item of items) {
+    const existing = merged.get(item.productId);
+    if (existing) {
+      existing.quantity += item.quantity;
+    } else {
+      merged.set(item.productId, { productId: item.productId, quantity: item.quantity });
+    }
+  }
+
+  return [...merged.values()];
+};
+
 export const createOrder = async (userId, data) => {
   const {
     items,
@@ -29,38 +44,71 @@ export const createOrder = async (userId, data) => {
     }
   }
 
-  const productIds = items.map((item) => item.productId);
-  const products = await prisma.product.findMany({
-    where: { id: { in: productIds } },
-  });
-
-  let totalAmount = 0;
-  const orderItemsData = items.map((item) => {
-    const product = products.find((entry) => entry.id === item.productId);
-
-    if (!product) {
-      throw new AppError(`Product with ID ${item.productId} not found`, 404);
-    }
-
-    if (product.stockStatus === 'OUT_OF_STOCK') {
-      throw new AppError(`Product "${product.title}" is out of stock`, 400);
-    }
-
-    if (product.stockQuantity !== null && product.stockQuantity < item.quantity) {
-      throw new AppError(`Not enough stock for "${product.title}" (available: ${product.stockQuantity})`, 400);
-    }
-
-    const price = Number(product.price);
-    totalAmount += price * item.quantity;
-
-    return {
-      productId: item.productId,
-      quantity: item.quantity,
-      price,
-    };
-  });
+  const normalizedItems = normalizeItems(items);
 
   const order = await prisma.$transaction(async (tx) => {
+    let totalAmount = 0;
+    const orderItemsData = [];
+
+    for (const item of normalizedItems) {
+      // Re-read each product inside the transaction so stock checks and
+      // decrements are based on current data under concurrent load.
+      // eslint-disable-next-line no-await-in-loop
+      const product = await tx.product.findUnique({
+        where: { id: item.productId },
+        select: { id: true, title: true, price: true, stockStatus: true, stockQuantity: true },
+      });
+
+      if (!product) {
+        throw new AppError(`Product with ID ${item.productId} not found`, 404);
+      }
+
+      if (product.stockStatus === 'OUT_OF_STOCK') {
+        throw new AppError(`Product "${product.title}" is out of stock`, 400);
+      }
+
+      if (product.stockQuantity !== null) {
+        // Atomic conditional decrement prevents overselling if two orders race.
+        // eslint-disable-next-line no-await-in-loop
+        const result = await tx.product.updateMany({
+          where: {
+            id: item.productId,
+            stockStatus: { not: 'OUT_OF_STOCK' },
+            stockQuantity: { gte: item.quantity },
+          },
+          data: {
+            stockQuantity: { decrement: item.quantity },
+          },
+        });
+
+        if (result.count === 0) {
+          throw new AppError(`Not enough stock for "${product.title}"`, 400);
+        }
+
+        // eslint-disable-next-line no-await-in-loop
+        const updatedProduct = await tx.product.findUnique({
+          where: { id: item.productId },
+          select: { stockQuantity: true, stockStatus: true },
+        });
+
+        if (updatedProduct?.stockQuantity !== null && updatedProduct.stockQuantity <= 0 && updatedProduct.stockStatus === 'IN_STOCK') {
+          // eslint-disable-next-line no-await-in-loop
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stockStatus: 'OUT_OF_STOCK' },
+          });
+        }
+      }
+
+      const price = Number(product.price);
+      totalAmount += price * item.quantity;
+      orderItemsData.push({
+        productId: item.productId,
+        quantity: item.quantity,
+        price,
+      });
+    }
+
     const createdOrder = await tx.order.create({
       data: {
         userId,
@@ -92,27 +140,6 @@ export const createOrder = async (userId, data) => {
         },
       },
     });
-
-    for (const item of items) {
-      const product = products.find((entry) => entry.id === item.productId);
-      const newQuantity = product.stockQuantity !== null ? product.stockQuantity - item.quantity : null;
-
-      const updateData = {};
-
-      if (newQuantity !== null) {
-        updateData.stockQuantity = newQuantity;
-        if (newQuantity <= 0 && product.stockStatus === 'IN_STOCK') {
-          updateData.stockStatus = 'OUT_OF_STOCK';
-        }
-      }
-
-      if (Object.keys(updateData).length > 0) {
-        await tx.product.update({
-          where: { id: item.productId },
-          data: updateData,
-        });
-      }
-    }
 
     return createdOrder;
   });

@@ -3,11 +3,22 @@ import path from 'path';
 import fs from 'fs';
 import AppError from '../utils/AppError.js';
 
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/avif',
+]);
+
+const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif']);
+
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith('image/')) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (ALLOWED_MIME_TYPES.has(file.mimetype) && ALLOWED_EXTENSIONS.has(ext)) {
     cb(null, true);
   } else {
-    cb(new AppError('Not an image! Please upload only images.', 400), false);
+    cb(new AppError('Unsupported file type. Only JPG, PNG, WEBP, GIF, and AVIF images are allowed.', 400), false);
   }
 };
 

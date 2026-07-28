@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE = process.env.INTERNAL_API_BASE_URL || 'http://backend:5000/api';
 
 const ADMIN_PATH_RE = /^\/admin(?:\/|$)/;
 const ADMIN_LOGIN_PATH = '/admin/login';

@@ -13,12 +13,16 @@ const parseDuration = (duration) => {
 const ACCESS_COOKIE = 'access_token';
 const REFRESH_COOKIE = 'refresh_token';
 
-const cookieOptions = (maxAge) => ({
+const cookieBaseOptions = {
   httpOnly: true,
   secure: config.cookieSecure,
-  sameSite: 'strict',
+  sameSite: 'lax',
   path: '/',
   domain: config.cookieDomain,
+};
+
+const cookieOptions = (maxAge) => ({
+  ...cookieBaseOptions,
   maxAge,
 });
 
@@ -30,8 +34,8 @@ const setTokenCookies = (res, token, refreshToken) => {
 };
 
 const clearTokenCookies = (res) => {
-  res.clearCookie(ACCESS_COOKIE, { path: '/' });
-  res.clearCookie(REFRESH_COOKIE, { path: '/api/auth/refresh' });
+  res.clearCookie(ACCESS_COOKIE, cookieBaseOptions);
+  res.clearCookie(REFRESH_COOKIE, cookieBaseOptions);
 };
 
 export const register = async (req, res, next) => {
