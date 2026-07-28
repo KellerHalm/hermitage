@@ -2874,6 +2874,16 @@ border-spacing: 0;
   .brands-grid {
     grid-template-columns: 1fr !important;
   }
+
+  .admin-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table-wrap table {
+    min-width: 500px;
+  }
 }
 
 @media (max-width: 480px) {

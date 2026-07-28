@@ -115,38 +115,40 @@ export default function CategoriesPage() {
       <input type="text" placeholder="Поиск категорий..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '4px', marginBottom: '24px', fontSize: '14px', boxSizing: 'border-box' }} />
 
       <div style={{ background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #eee' }}>
-              <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>
-                Название
-              </th>
-              <th className="text-center" style={{ padding: '16px', textAlign: 'center', fontSize: '12px', color: '#666', textTransform: 'uppercase', width: '20%' }}>
-                Товаров
-              </th>
-              <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase', whiteSpace: 'nowrap', width: '1%' }}>
-                Действия
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCategories.map((category) => (
-              <tr key={category.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '16px', fontSize: '14px', fontWeight: 500, paddingLeft: `${16 + category.level * 24}px` }}>
-                  {category.level > 0 && <span style={{ color: '#999', marginRight: 6 }}>&#8627;</span>}
-                  {category.name}
-                </td>
-                <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>
-                  {productsCount[category.id] || 0}
-                </td>
-                <td style={{ padding: '16px', textAlign: 'left', whiteSpace: 'nowrap' }}>
-                  <button onClick={() => { setEditingCategory(category); setFormData({ name: category.name, parentId: category.parentId || '' }); setImageFile(null); setImagePreview(category.image || null); setShowModal(true); }} style={{ padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginRight: '8px' }}>Редактировать</button>
-                  <button onClick={() => void handleDelete(category.id)} style={{ padding: '6px 12px', background: '#ffebee', color: '#c62828', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Удалить</button>
-                </td>
+        <div className="admin-table-wrap">
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #eee' }}>
+                <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>
+                  Название
+                </th>
+                <th className="text-center" style={{ padding: '16px', textAlign: 'center', fontSize: '12px', color: '#666', textTransform: 'uppercase', width: '20%' }}>
+                  Товаров
+                </th>
+                <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase', whiteSpace: 'nowrap', width: '1%' }}>
+                  Действия
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredCategories.map((category) => (
+                <tr key={category.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: '16px', fontSize: '14px', fontWeight: 500, paddingLeft: `${16 + category.level * 24}px` }}>
+                    {category.level > 0 && <span style={{ color: '#999', marginRight: 6 }}>&#8627;</span>}
+                    {category.name}
+                  </td>
+                  <td style={{ padding: '16px', textAlign: 'center', fontSize: '14px', fontWeight: 600 }}>
+                    {productsCount[category.id] || 0}
+                  </td>
+                  <td style={{ padding: '16px', textAlign: 'left', whiteSpace: 'nowrap' }}>
+                    <button onClick={() => { setEditingCategory(category); setFormData({ name: category.name, parentId: category.parentId || '' }); setImageFile(null); setImagePreview(category.image || null); setShowModal(true); }} style={{ padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginRight: '8px' }}>Редактировать</button>
+                    <button onClick={() => void handleDelete(category.id)} style={{ padding: '6px 12px', background: '#ffebee', color: '#c62828', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Удалить</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {showModal && (

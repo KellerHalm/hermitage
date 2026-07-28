@@ -82,33 +82,35 @@ export default function CountriesPage() {
       <input type="text" placeholder="Поиск стран..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '4px', marginBottom: '24px', fontSize: '14px', boxSizing: 'border-box' }} />
 
       <div style={{ background: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #eee' }}>
-              <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Название</th>
-              <th style={{ padding: '16px', textAlign: 'center', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Изображение</th>
-              <th style={{ padding: '16px', textAlign: 'right', fontSize: '12px', color: '#666', textTransform: 'uppercase', whiteSpace: 'nowrap', width: '1%' }}>Действия</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCountries.map((country) => (
-              <tr key={country.id} style={{ borderBottom: '1px solid #eee' }}>
-                <td style={{ padding: '16px', fontSize: '14px', fontWeight: 500 }}>{country.name}</td>
-                <td style={{ padding: '16px', textAlign: 'center' }}>
-                  {country.image ? (
-                    <img src={country.image} alt={country.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px' }} />
-                  ) : (
-                    <span style={{ color: '#999', fontSize: '12px' }}>Нет</span>
-                  )}
-                </td>
-                <td style={{ padding: '16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <button onClick={() => { setEditingCountry(country); setFormData({ name: country.name }); setImageFile(null); setImagePreview(country.image || null); setShowModal(true); }} style={{ padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginRight: '8px' }}>Редактировать</button>
-                  <button onClick={() => void handleDelete(country.id)} style={{ padding: '6px 12px', background: '#ffebee', color: '#c62828', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Удалить</button>
-                </td>
+        <div className="admin-table-wrap">
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ background: '#f9f9f9', borderBottom: '1px solid #eee' }}>
+                <th style={{ padding: '16px', textAlign: 'left', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Название</th>
+                <th style={{ padding: '16px', textAlign: 'center', fontSize: '12px', color: '#666', textTransform: 'uppercase' }}>Изображение</th>
+                <th style={{ padding: '16px', textAlign: 'right', fontSize: '12px', color: '#666', textTransform: 'uppercase', whiteSpace: 'nowrap', width: '1%' }}>Действия</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filteredCountries.map((country) => (
+                <tr key={country.id} style={{ borderBottom: '1px solid #eee' }}>
+                  <td style={{ padding: '16px', fontSize: '14px', fontWeight: 500 }}>{country.name}</td>
+                  <td style={{ padding: '16px', textAlign: 'center' }}>
+                    {country.image ? (
+                      <img src={country.image} alt={country.name} style={{ width: '48px', height: '48px', objectFit: 'cover', borderRadius: '4px' }} />
+                    ) : (
+                      <span style={{ color: '#999', fontSize: '12px' }}>Нет</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '16px', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <button onClick={() => { setEditingCountry(country); setFormData({ name: country.name }); setImageFile(null); setImagePreview(country.image || null); setShowModal(true); }} style={{ padding: '6px 12px', background: '#f5f5f5', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', marginRight: '8px' }}>Редактировать</button>
+                    <button onClick={() => void handleDelete(country.id)} style={{ padding: '6px 12px', background: '#ffebee', color: '#c62828', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Удалить</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {showModal && (
