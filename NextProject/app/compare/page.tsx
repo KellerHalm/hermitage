@@ -44,12 +44,32 @@ export default function ComparePage() {
 
   const getProductUrlFor = (product: any) => getProductUrl(product);
 
-  // Проверяем, есть ли различия в строке
   const hasDiff = (key: string) => {
+    if (key.startsWith('char:')) {
+      const charName = key.slice(5);
+      const values = products.map((p) => {
+        const match = Array.isArray(p.characteristics)
+          ? p.characteristics.find((ch: any) => ch.name === charName)
+          : null;
+        return String(match?.value ?? '').trim();
+      });
+      return [...new Set(values)].length > 1;
+    }
     const values = products.map((p) => String(p[key] ?? '').trim());
-    const unique = [...new Set(values)];
-    return unique.length > 1;
+    return [...new Set(values)].length > 1;
   };
+
+  const charNames = (() => {
+    const names = new Set<string>();
+    products.forEach((p) => {
+      if (Array.isArray(p.characteristics)) {
+        p.characteristics.forEach((ch: any) => {
+          if (ch.name) names.add(ch.name);
+        });
+      }
+    });
+    return Array.from(names);
+  })();
 
   // Характеристики для таблицы
   const specs: { key: string; label: string; render?: (p: any) => React.ReactNode }[] = [
@@ -198,6 +218,23 @@ export default function ComparePage() {
                   ))}
                 </tr>
               ))}
+              {charNames.map((charName) => {
+                const key = `char:${charName}`;
+                return (
+                  <tr 
+                    key={key} 
+                    className={diffMode === 'hide' && !hasDiff(key) ? 'compare-row--hidden' : ''}
+                  >
+                    <td>{charName}</td>
+                    {products.map((p) => {
+                      const match = Array.isArray(p.characteristics)
+                        ? p.characteristics.find((ch: any) => ch.name === charName)
+                        : null;
+                      return <td key={p.id}>{match?.value || '—'}</td>;
+                    })}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

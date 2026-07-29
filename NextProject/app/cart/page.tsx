@@ -18,12 +18,14 @@ interface CartItem extends Product {
 export default function CartPage() {
   const { data: HERMITAGE, loaded } = useStoreData();
   const [cart, setCart] = useState<Array<{ id: string; qty: number }>>([]);
+  const [selectedMap, setSelectedMap] = useState<Record<string, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     phone: '',
     email: '',
+    privacyConsent: false,
     deliveryType: 'pickup',
     paymentMethod: 'card_online',
     address: '',
@@ -51,12 +53,24 @@ export default function CartPage() {
     return () => window.removeEventListener('storage', handler);
   }, []);
 
+  useEffect(() => {
+    setSelectedMap((prev) => {
+      const next: Record<string, boolean> = {};
+      cart.forEach((item) => {
+        next[item.id] = prev[item.id] ?? true;
+      });
+      return next;
+    });
+  }, [cart]);
+
   const items = cart.flatMap((cartItem) => {
     const product = HERMITAGE.products.find((entry: any) => String(entry.id) === String(cartItem.id));
     return product ? [{ ...product, qty: cartItem.qty } as CartItem] : [];
   });
 
-  const total = items.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const selectedItems = items.filter((item) => selectedMap[String(item.id)]);
+  const total = selectedItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const allSelected = items.length > 0 && selectedItems.length === items.length;
 
   const updateQty = (id: string, delta: number) => {
     const item = cart.find((entry) => entry.id === id);
@@ -73,6 +87,18 @@ export default function CartPage() {
   const removeFromCart = (id: string) => {
     Store.removeFromCart(id);
     setCart(Store.cart());
+  };
+
+  const toggleSelected = (id: string) => {
+    setSelectedMap((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const toggleAllSelected = () => {
+    const nextValue = !allSelected;
+    setSelectedMap(() => Object.fromEntries(items.map((item) => [String(item.id), nextValue])));
   };
 
   const submitOrder = async (e: React.FormEvent) => {
@@ -95,7 +121,12 @@ export default function CartPage() {
       if (emailError) { showToast(emailError, 'error'); return; }
     }
 
-    const unavailable = items.filter((item) => item.inStock === false || item.stockQuantity === 0);
+    if (selectedItems.length === 0) {
+      showToast('Выберите хотя бы один товар для оформления заказа', 'error');
+      return;
+    }
+
+    const unavailable = selectedItems.filter((item) => item.inStock === false || item.stockQuantity === 0);
     if (unavailable.length > 0) {
       showToast(`Некоторые товары недоступны: ${unavailable.map((item) => item.name).join(', ')}`, 'error');
       return;
@@ -116,6 +147,11 @@ export default function CartPage() {
       return;
     }
 
+    if (!formData.privacyConsent) {
+      showToast('Подтвердите согласие на обработку персональных данных', 'error');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await Store.createOrder({
@@ -123,14 +159,16 @@ export default function CartPage() {
         lastName: formData.lastName,
         phone: formData.phone,
         email: formData.email,
+        privacyConsent: formData.privacyConsent,
         deliveryType: formData.deliveryType as 'pickup' | 'delivery',
         paymentMethod: formData.paymentMethod,
         address: formData.address,
         comment: formData.comment,
-        items: items.map((item) => ({ id: String(item.id), qty: item.qty })),
+        items: selectedItems.map((item) => ({ id: String(item.id), qty: item.qty })),
+        cartItemIdsToRemove: selectedItems.map((item) => String(item.id)),
       });
 
-      setCart([]);
+      setSelectedMap({});
       showToast('Заказ успешно отправлен', 'success');
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Не удалось оформить заказ', 'error');
@@ -188,13 +226,35 @@ export default function CartPage() {
         <div className="cart-layout">
           <div>
             <div className="cart-list">
+              {items.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <input
+                    id="select-all-cart-items"
+                    type="checkbox"
+                    checked={allSelected}
+                    onChange={toggleAllSelected}
+                  />
+                  <label htmlFor="select-all-cart-items" style={{ fontSize: 14, cursor: 'pointer' }}>
+                    Выбрать все
+                  </label>
+                </div>
+              )}
               {cart.map((cartItem) => {
                 const product = HERMITAGE.products.find((entry: any) => String(entry.id) === String(cartItem.id));
                 if (!product) return null;
                 const productUrl = getProductUrl(product as any);
+                const isSelected = Boolean(selectedMap[String(cartItem.id)]);
 
                 return (
                   <div key={cartItem.id} className="cart-item">
+                    <div style={{ display: 'flex', alignItems: 'flex-start', paddingTop: 8 }}>
+                      <input
+                        type="checkbox"
+                        aria-label={`Выбрать ${product.name}`}
+                        checked={isSelected}
+                        onChange={() => toggleSelected(String(cartItem.id))}
+                      />
+                    </div>
                     <Link href={productUrl} className="cart-item__img">
                       <img src={product.images?.[0] || product.image} alt={product.name} />
                     </Link>
@@ -213,7 +273,10 @@ export default function CartPage() {
                 );
               })}
             </div>
-            <p style={{ fontSize: 18, marginTop: 16 }}>Итого: <strong>{formatPrice(total)}</strong></p>
+            <p style={{ fontSize: 18, marginTop: 16 }}>
+              Выбрано товаров: <strong>{selectedItems.length}</strong>
+            </p>
+            <p style={{ fontSize: 18, marginTop: 8 }}>Итого к заказу: <strong>{formatPrice(total)}</strong></p>
             <p style={{ marginTop: 8 }}>
               <Link href="/delivery" style={{ fontSize: 14 }}>Условия доставки</Link>
               {' · '}
@@ -268,7 +331,24 @@ export default function CartPage() {
               <textarea id="comment" rows={4} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '8px', resize: 'vertical' }} value={formData.comment} onChange={(e) => setFormData({ ...formData, comment: e.target.value })} />
             </div>
 
-            <button type="submit" className="btn btn--primary btn--block" disabled={submitting}>
+            <div className="form-group" style={{ marginBottom: 24 }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, fontSize: 14, lineHeight: 1.5 }}>
+                <input
+                  type="checkbox"
+                  checked={formData.privacyConsent}
+                  onChange={(e) => setFormData({ ...formData, privacyConsent: e.target.checked })}
+                  style={{ marginTop: 3 }}
+                />
+                <span>
+                  Я даю согласие на обработку персональных данных в соответствии с{' '}
+                  <Link href="/privacy" target="_blank" rel="noopener noreferrer">
+                    политикой конфиденциальности
+                  </Link>
+                </span>
+              </label>
+            </div>
+
+            <button type="submit" className="btn btn--primary btn--block" disabled={submitting || !formData.privacyConsent || selectedItems.length === 0}>
               {submitting ? 'Отправка...' : 'Оформить заказ'}
             </button>
           </form>

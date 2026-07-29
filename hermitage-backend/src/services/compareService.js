@@ -7,6 +7,7 @@ const compareInclude = {
   product: {
     include: {
       images: true,
+      characteristics: true,
       category: true,
       brand: true,
     },

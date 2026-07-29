@@ -6,7 +6,7 @@ import Footer from "./components/Footer";
 import ProductCard from "./components/ProductCard";
 import { useStoreData } from '@/lib/use-store-data';
 import { buildAssetUrl } from '@/lib/api';
-import { getCategoryUrl, getCountryCatalogUrl } from '@/lib/urls';
+import { getCategoryUrl } from '@/lib/urls';
 
 export default function Home() {
   const { data: HERMITAGE, loaded } = useStoreData();
@@ -52,20 +52,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="section" style={{ background: "var(--white)" }}>
-        <div className="container">
-          <p className="section__subtitle">Производство</p>
-          <h2 className="section__title">Мировые фабрики</h2>
-          <div className="countries-grid">
-            {HERMITAGE.countries.map((c: any) => (
-              <Link key={c.id} href={getCountryCatalogUrl(c.name)} className="country-card">
-                <img src={c.image} alt={c.name} loading="lazy" />
-                <span className="country-card__label">{c.name}</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
 
       <section className="section">
         <div className="container">

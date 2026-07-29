@@ -694,25 +694,40 @@ export const Store = {
     lastName: string;
     phone: string;
     email?: string;
+    privacyConsent: boolean;
     deliveryType?: 'pickup' | 'delivery';
     paymentMethod?: string;
     address?: string;
     comment?: string;
     items: Array<{ id: string; qty: number }>;
+    cartItemIdsToRemove?: string[];
   }) {
     const response = await api.createOrder('', {
       customerFirstName: payload.firstName,
       customerLastName: payload.lastName,
       customerPhone: payload.phone,
       customerEmail: payload.email,
+      privacyConsent: payload.privacyConsent,
       shippingAddress: payload.address || '',
       paymentMethod: payload.paymentMethod || 'card_online',
       deliveryType: payload.deliveryType || 'pickup',
       comment: payload.comment || '',
       items: payload.items.map((item) => ({ productId: item.id, quantity: item.qty })),
     });
-    await api.clearCart(cartAuth()).catch(() => undefined);
-    Store.setCart([]);
+
+    const cartItemIdsToRemove = Array.isArray(payload.cartItemIdsToRemove)
+      ? [...new Set(payload.cartItemIdsToRemove.map((id) => String(id)).filter(Boolean))]
+      : [];
+
+    if (cartItemIdsToRemove.length > 0) {
+      Store.setCart(Store.cart().filter((item) => !cartItemIdsToRemove.includes(String(item.id))));
+
+      await Promise.all(
+        cartItemIdsToRemove.map((id) => api.removeCartItem(cartAuth(), id).catch(() => undefined))
+      );
+      await syncCart().catch(() => undefined);
+    }
+
     await syncUserData();
     return normalizeOrder(response?.data?.order);
   },

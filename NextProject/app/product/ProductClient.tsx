@@ -107,6 +107,7 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
     lastName: '',
     phone: '',
     comment: '',
+    privacyConsent: false,
     deliveryType: 'pickup',
     paymentMethod: 'card_online',
     address: '',
@@ -203,6 +204,11 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
       return;
     }
 
+    if (!orderForm.privacyConsent) {
+      showToast('Подтвердите согласие на обработку персональных данных', 'error');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -211,6 +217,7 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
         lastName: orderForm.lastName || currentUser.lastName,
         phone: orderForm.phone || currentUser.phone,
         email: currentUser.email,
+        privacyConsent: orderForm.privacyConsent,
         deliveryType: orderForm.deliveryType as 'pickup' | 'delivery',
         paymentMethod: orderForm.paymentMethod,
         address: orderForm.address,
@@ -219,7 +226,7 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
       });
       showToast('Заявка отправлена', 'success');
       setShowOrderModal(false);
-      setOrderForm({ firstName: '', lastName: '', phone: '', comment: '', deliveryType: 'pickup', paymentMethod: 'card_online', address: '' });
+      setOrderForm({ firstName: '', lastName: '', phone: '', comment: '', privacyConsent: false, deliveryType: 'pickup', paymentMethod: 'card_online', address: '' });
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Не удалось отправить заявку', 'error');
     } finally {
@@ -420,8 +427,22 @@ export default function ProductPage({ initialSlug }: ProductPageProps) {
                   <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', color: '#333' }}>Комментарий</label>
                   <textarea rows={3} value={orderForm.comment} onChange={(e) => setOrderForm({ ...orderForm, comment: e.target.value })} style={{ width: '100%', padding: '12px', border: '1px solid #ddd', borderRadius: '4px' }} />
                 </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', color: '#333', lineHeight: 1.5 }}>
+                    <input
+                      type="checkbox"
+                      checked={orderForm.privacyConsent}
+                      onChange={(e) => setOrderForm({ ...orderForm, privacyConsent: e.target.checked })}
+                      style={{ marginTop: '3px' }}
+                    />
+                    <span>
+                      Я даю согласие на обработку персональных данных в соответствии с{' '}
+                      <Link href="/privacy" target="_blank" rel="noopener noreferrer">политикой конфиденциальности</Link>
+                    </span>
+                  </label>
+                </div>
                 <div style={{ display: 'flex', gap: '12px' }}>
-                  <button type="submit" className="btn btn--primary" style={{ flex: 1 }} disabled={loading}>{loading ? 'Отправка...' : 'Отправить заявку'}</button>
+                  <button type="submit" className="btn btn--primary" style={{ flex: 1 }} disabled={loading || !orderForm.privacyConsent}>{loading ? 'Отправка...' : 'Отправить заявку'}</button>
                   <button type="button" onClick={() => setShowOrderModal(false)} className="btn btn--outline" style={{ flex: 1 }}>Отмена</button>
                 </div>
               </form>
