@@ -1818,6 +1818,8 @@ body.search-open .site-header--hero .site-nav a {
 
 .tabs__panel {
   display: none;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .tabs__panel.is-active {
