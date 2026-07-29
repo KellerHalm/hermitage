@@ -12,6 +12,7 @@ const ALLOWED_MIME_TYPES = new Set([
 ]);
 
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif']);
+const MAX_IMAGE_FILE_SIZE = 15 * 1024 * 1024;
 
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();
@@ -98,10 +99,20 @@ const verifyMagicBytes = (filepath) => {
  * Сохраняет API multer: возвращаемый объект имеет методы .array()/.single()/.fields().
  */
 const withMagicByteValidation = (multerInstance) => {
+  const collectFiles = (req) => {
+    if (Array.isArray(req.files) && req.files.length > 0) {
+      return req.files;
+    }
+
+    if (req.files && typeof req.files === 'object') {
+      return Object.values(req.files).flat();
+    }
+
+    return req.file ? [req.file] : [];
+  };
+
   const validateFiles = (req, res, next) => {
-    const files = req.files && req.files.length
-      ? req.files
-      : (req.file ? [req.file] : []);
+    const files = collectFiles(req);
 
     const invalid = files.find((f) => !verifyMagicBytes(f.path));
     if (invalid) {
@@ -118,10 +129,11 @@ const withMagicByteValidation = (multerInstance) => {
   };
 
   const wrap = (method) => (...args) => (req, res, next) => {
-    method.apply(multerInstance, [...args, (err) => {
+    const middleware = method.apply(multerInstance, args);
+    middleware(req, res, (err) => {
       if (err) return next(err);
       validateFiles(req, res, next);
-    }]);
+    });
   };
 
   return {
@@ -136,17 +148,17 @@ const withMagicByteValidation = (multerInstance) => {
 export const uploadProductFiles = withMagicByteValidation(multer({
   storage: createStorage('products', 'product'),
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: MAX_IMAGE_FILE_SIZE },
 }));
 
 export const uploadCategoryFiles = withMagicByteValidation(multer({
   storage: createStorage('categories', 'category'),
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: MAX_IMAGE_FILE_SIZE },
 }));
 
 export const uploadCountryFiles = withMagicByteValidation(multer({
   storage: createStorage('countries', 'country'),
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  limits: { fileSize: MAX_IMAGE_FILE_SIZE },
 }));

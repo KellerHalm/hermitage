@@ -23,6 +23,28 @@ const buildImagesData = (files = []) => files.map((file, index) => ({
   isMain: index === 0,
 }));
 
+const parseCharacteristics = (rawValue) => {
+  if (!rawValue) return [];
+
+  let parsed;
+  try {
+    parsed = JSON.parse(rawValue);
+  } catch {
+    throw new AppError('Invalid characteristics JSON', 400);
+  }
+
+  if (!Array.isArray(parsed)) {
+    throw new AppError('Characteristics must be an array', 400);
+  }
+
+  return parsed
+    .map((item) => ({
+      name: String(item?.name || '').trim(),
+      value: String(item?.value || '').trim(),
+    }))
+    .filter((item) => item.name && item.value);
+};
+
 // Accepts a scalar or a comma-separated list ("red,blue") and returns a clean
 // array of non-empty trimmed values, or null if there is nothing to filter on.
 const splitList = (value) => {
@@ -96,14 +118,7 @@ export const createProduct = async (data, files) => {
     throw new AppError('Product with this title already exists', 400);
   }
 
-  let characteristicsData = [];
-  if (data.characteristics) {
-    try {
-      characteristicsData = JSON.parse(data.characteristics);
-    } catch {
-      throw new AppError('Invalid characteristics JSON', 400);
-    }
-  }
+  const characteristicsData = parseCharacteristics(data.characteristics);
   const imagesData = buildImagesData(files);
 
   return prisma.product.create({
@@ -284,14 +299,10 @@ export const updateProduct = async (id, data, files) => {
   if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
   if (data.brandId !== undefined) updateData.brandId = data.brandId || null;
 
-  let characteristicsData = null;
-  if (data.characteristics) {
-    try {
-      characteristicsData = JSON.parse(data.characteristics);
-    } catch {
-      throw new AppError('Invalid characteristics JSON', 400);
-    }
-  }
+  const hasCharacteristicsField = data.characteristics !== undefined;
+  const characteristicsData = hasCharacteristicsField
+    ? parseCharacteristics(data.characteristics)
+    : null;
   const imagesData = buildImagesData(files);
 
   let deleteImageIds = null;
@@ -318,7 +329,7 @@ export const updateProduct = async (id, data, files) => {
     where: { id },
     data: {
       ...updateData,
-      ...(characteristicsData
+      ...(hasCharacteristicsField
         ? {
             characteristics: {
               deleteMany: {},
@@ -406,4 +417,3 @@ export const getBoughtTogetherProducts = async (slug) => {
     },
   });
 };
-
