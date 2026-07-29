@@ -60,6 +60,7 @@ export const schemas = {
         quantity: Joi.number().integer().min(1).max(100).required(),
       })
     ).min(1).max(50).required(),
+    privacyConsent: Joi.boolean().valid(true).required(),
     shippingAddress: Joi.string().max(500).allow('', null),
     paymentMethod: Joi.string().max(50).allow('', null),
     deliveryType: Joi.string().valid('delivery', 'pickup').allow('', null),
