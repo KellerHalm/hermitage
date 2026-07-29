@@ -350,9 +350,15 @@ export const updateProduct = async (id, data, files) => {
 };
 
 export const deleteProduct = async (id) => {
-  return prisma.product.delete({
-    where: { id },
-  });
+  const existing = await prisma.product.findUnique({ where: { id } });
+  if (!existing) throw new AppError('Product not found', 404);
+
+  const orderItemCount = await prisma.orderItem.count({ where: { productId: id } });
+  if (orderItemCount > 0) {
+    throw new AppError('Cannot delete product that has been ordered. Archive it instead.', 409);
+  }
+
+  return prisma.product.delete({ where: { id } });
 };
 
 export const getSimilarProducts = async (slug) => {
